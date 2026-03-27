@@ -1,6 +1,7 @@
 'use client';
 
-import { Post } from '@/lib/api';
+import { useState } from 'react';
+import { Post, likePost } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 
 interface PostCardProps {
@@ -14,7 +15,7 @@ function linkifyContent(text: string) {
   return parts.map((part, i) => {
     if (urlRegex.test(part)) {
       return (
-        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline break-all">
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }} className="hover:underline break-all">
           {part}
         </a>
       );
@@ -26,20 +27,61 @@ function linkifyContent(text: string) {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export default function PostCard({ post, onDelete }: PostCardProps) {
+  const [likes, setLikes] = useState(post.likes);
+  const [liked, setLiked] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const stored = JSON.parse(localStorage.getItem('likedPosts') || '[]') as string[];
+      return stored.includes(post.id);
+    } catch {
+      return false;
+    }
+  });
+  const [likeAnim, setLikeAnim] = useState(false);
+
   const media = post.media ?? [];
   const codeSnippets = post.code_snippets ?? [];
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
 
+  const handleLike = async () => {
+    if (liked) return;
+    try {
+      const newLikes = await likePost(post.id);
+      setLikes(newLikes);
+      setLiked(true);
+      setLikeAnim(true);
+      setTimeout(() => setLikeAnim(false), 300);
+      // Persist liked state across page refreshes
+      try {
+        const stored = JSON.parse(localStorage.getItem('likedPosts') || '[]') as string[];
+        if (!stored.includes(post.id)) {
+          stored.push(post.id);
+          localStorage.setItem('likedPosts', JSON.stringify(stored));
+        }
+      } catch {
+        // localStorage unavailable, ignore
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
   return (
-    <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+    <div
+      className="rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-gray-100 whitespace-pre-wrap break-words flex-1">
+        <p className="text-sm whitespace-pre-wrap break-words flex-1" style={{ color: 'var(--text-primary)' }}>
           {linkifyContent(post.content)}
         </p>
         <button
           onClick={() => onDelete(post.id)}
-          className="text-gray-600 hover:text-red-400 transition-colors flex-shrink-0 text-sm"
+          className="transition-colors flex-shrink-0 text-sm"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--danger)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
           title="Delete post"
         >
           🗑️
@@ -47,11 +89,11 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
       </div>
 
       {codeSnippets.map(cs => (
-        <div key={cs.id} className="mt-3 rounded-lg overflow-hidden border border-gray-700">
+        <div key={cs.id} className="mt-3 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
           {cs.language && (
-            <div className="bg-gray-800 px-3 py-1 text-xs text-gray-400">{cs.language}</div>
+            <div className="px-3 py-1 text-xs" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>{cs.language}</div>
           )}
-          <pre className="bg-gray-950 p-3 overflow-x-auto text-xs text-green-400 font-mono">
+          <pre className="p-3 overflow-x-auto text-xs font-mono" style={{ backgroundColor: 'var(--code-bg)', color: 'var(--code-text)' }}>
             <code>{cs.code}</code>
           </pre>
         </div>
@@ -84,16 +126,25 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
-        <span className="flex items-center gap-1">
-          <span>❤️</span>
-          <span>{post.likes.toLocaleString()}</span>
-        </span>
+      <div className="mt-3 flex items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <button
+          onClick={handleLike}
+          className={`flex items-center gap-1 transition-all ${likeAnim ? 'like-pop' : ''}`}
+          style={{
+            color: liked ? 'var(--like-color)' : 'var(--text-muted)',
+            cursor: liked ? 'default' : 'pointer',
+          }}
+          disabled={liked}
+          title={liked ? 'Already liked' : 'Like this post'}
+        >
+          <span>{liked ? '❤️' : '🤍'}</span>
+          <span>{likes.toLocaleString()}</span>
+        </button>
         <span className="flex items-center gap-1">
           <span>🔄</span>
           <span>{post.shares.toLocaleString()}</span>
         </span>
-        <span className="ml-auto text-xs text-gray-600">{timeAgo}</span>
+        <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>{timeAgo}</span>
       </div>
     </div>
   );

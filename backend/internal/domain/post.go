@@ -42,3 +42,9 @@ type CodeSnippet struct {
 	LineCount int       `json:"line_count"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+// DailyActivity represents the number of posts made on a given date, used for streak heatmaps.
+type DailyActivity struct {
+	Date  string `json:"date"`  // YYYY-MM-DD
+	Count int    `json:"count"`
+}

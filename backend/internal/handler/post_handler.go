@@ -204,6 +204,84 @@ func (h *PostHandler) ExportPosts(c *gin.Context) {
 	}
 }
 
+func (h *PostHandler) LikePost(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	likes, err := h.postUsecase.LikePost(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"likes": likes})
+}
+
+func (h *PostHandler) SearchPosts(c *gin.Context) {
+	keyword := c.Query("q")
+	page := 1
+	limit := 20
+
+	if p := c.Query("page"); p != "" {
+		if v, err := strconv.Atoi(p); err == nil && v > 0 {
+			page = v
+		}
+	}
+	if l := c.Query("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 && v <= 100 {
+			limit = v
+		}
+	}
+
+	var from, to *time.Time
+	if f := c.Query("from"); f != "" {
+		t, err := time.Parse("2006-01-02", f)
+		if err == nil {
+			from = &t
+		}
+	}
+	if t := c.Query("to"); t != "" {
+		parsed, err := time.Parse("2006-01-02", t)
+		if err == nil {
+			endOfDay := parsed.Add(24*time.Hour - time.Second)
+			to = &endOfDay
+		}
+	}
+
+	posts, total, err := h.postUsecase.SearchPosts(c.Request.Context(), keyword, from, to, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"posts": posts,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
+func (h *PostHandler) GetActivity(c *gin.Context) {
+	days := 365
+	if d := c.Query("days"); d != "" {
+		if v, err := strconv.Atoi(d); err == nil && v > 0 && v <= 730 {
+			days = v
+		}
+	}
+
+	activity, err := h.postUsecase.GetDailyActivity(c.Request.Context(), days)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"activity": activity})
+}
+
 func detectMediaType(filename, contentType string) domain.MediaType {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {

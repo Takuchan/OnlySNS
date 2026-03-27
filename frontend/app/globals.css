@@ -1,3 +1,126 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===========================
+   Theme CSS Variables
+   =========================== */
+
+/* Default (Dark) Theme */
+:root,
+[data-theme="dark"] {
+  --bg-primary: #030712;
+  --bg-secondary: #111827;
+  --bg-card: #1f2937;
+  --bg-input: #111827;
+  --border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-text: #ffffff;
+  --danger: #ef4444;
+  --like-color: #f43f5e;
+  --code-bg: #030712;
+  --code-text: #4ade80;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-text: #ffffff;
+  --danger: #ef4444;
+  --like-color: #f43f5e;
+  --code-bg: #1e293b;
+  --code-text: #4ade80;
+}
+
+/* Waga Homare (My Glory) Theme */
+[data-theme="homare"] {
+  --bg-primary: #0a0800;
+  --bg-secondary: #141006;
+  --bg-card: #1c1608;
+  --bg-input: #141006;
+  --border: #3d2f00;
+  --text-primary: #ffd700;
+  --text-secondary: #c9a227;
+  --text-muted: #8b6914;
+  --accent: #d4a017;
+  --accent-hover: #b8860b;
+  --accent-text: #0a0800;
+  --danger: #ef4444;
+  --like-color: #ff6b35;
+  --code-bg: #0a0800;
+  --code-text: #ffd700;
+}
+
+/* ===========================
+   Base Styles
+   =========================== */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for theme changes */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Remove transition from animations (avoid sluggishness) */
+[data-no-transition] * {
+  transition: none !important;
+}
+
+/* Page fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 0.35s ease forwards;
+}
+
+/* Card hover lift */
+@keyframes cardHover {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+
+/* Like button pop animation */
+@keyframes likePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.like-pop {
+  animation: likePop 0.3s ease;
+}
+
+/* Streak heatmap cell */
+.heatmap-cell {
+  border-radius: 2px;
+  transition: transform 0.1s ease;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.4);
+  z-index: 10;
+  position: relative;
+}

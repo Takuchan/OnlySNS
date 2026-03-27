@@ -104,28 +104,30 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+    <form onSubmit={handleSubmit} className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
         placeholder="What's on your mind?"
         rows={3}
-        className="w-full bg-transparent text-white placeholder-gray-500 resize-none outline-none text-sm"
+        className="w-full bg-transparent resize-none outline-none text-sm"
+        style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)' }}
       />
 
       <div className="flex items-center justify-between mt-1 mb-2">
-        <span className={`text-xs ${charError ? 'text-red-400' : charWarning ? 'text-yellow-400' : 'text-gray-500'}`}>
+        <span className="text-xs" style={{ color: charError ? 'var(--danger)' : charWarning ? '#fbbf24' : 'var(--text-muted)' }}>
           {charCount} / {MAX_CHARS}
         </span>
       </div>
 
       {showCode && (
-        <div className="mt-2 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="flex items-center bg-gray-800 px-3 py-1 gap-2">
+        <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          <div className="flex items-center px-3 py-1 gap-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             <select
               value={language}
               onChange={e => setLanguage(e.target.value)}
-              className="bg-transparent text-gray-300 text-xs outline-none"
+              className="bg-transparent text-xs outline-none"
+              style={{ color: 'var(--text-secondary)' }}
             >
               <option value="">Language</option>
               <option value="javascript">JavaScript</option>
@@ -139,7 +141,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
               <option value="bash">Bash</option>
               <option value="other">Other</option>
             </select>
-            <span className={`ml-auto text-xs ${codeLinesWarning ? 'text-red-400' : 'text-gray-500'}`}>
+            <span className="ml-auto text-xs" style={{ color: codeLinesWarning ? 'var(--danger)' : 'var(--text-muted)' }}>
               {codeLines} / {MAX_CODE_LINES} lines
             </span>
           </div>
@@ -148,7 +150,8 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
             onChange={e => setCode(e.target.value)}
             placeholder="Paste your code here..."
             rows={6}
-            className="w-full bg-gray-900 text-green-400 font-mono text-xs p-3 resize-none outline-none"
+            className="w-full font-mono text-xs p-3 resize-none outline-none"
+            style={{ backgroundColor: 'var(--code-bg)', color: 'var(--code-text)' }}
           />
         </div>
       )}
@@ -165,7 +168,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
                   className="h-16 w-16 object-cover rounded-lg"
                 />
               ) : (
-                <div className="h-16 w-16 bg-gray-800 rounded-lg flex items-center justify-center text-xs text-gray-400 text-center p-1">
+                <div className="h-16 w-16 rounded-lg flex items-center justify-center text-xs text-center p-1" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                   {f.name}
                 </div>
               )}
@@ -182,7 +185,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
       )}
 
       {error && (
-        <p className="mt-2 text-red-400 text-xs">{error}</p>
+        <p className="mt-2 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
       )}
 
       <div className="flex items-center justify-between mt-3">
@@ -190,7 +193,10 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-sm"
+            className="p-2 rounded-lg transition-colors text-sm"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             title="Attach media"
           >
             📎
@@ -206,7 +212,11 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
           <button
             type="button"
             onClick={() => setShowCode(!showCode)}
-            className={`p-2 rounded-lg transition-colors text-sm ${showCode ? 'text-indigo-400 bg-indigo-900/30' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+            className="p-2 rounded-lg transition-colors text-sm"
+            style={{
+              color: showCode ? 'var(--accent)' : 'var(--text-muted)',
+              backgroundColor: showCode ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
+            }}
             title="Add code snippet"
           >
             {'</>'}
@@ -215,7 +225,10 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
         <button
           type="submit"
           disabled={submitting || charError || !content.trim()}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+          style={{ backgroundColor: 'var(--accent)' }}
+          onMouseEnter={e => { if (!submitting && !charError && content.trim()) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--accent-hover)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--accent)'; }}
         >
           {submitting ? 'Posting...' : 'Post'}
         </button>

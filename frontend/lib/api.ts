@@ -38,6 +38,15 @@ export interface PostsResponse {
   limit: number;
 }
 
+export interface DailyActivity {
+  date: string;   // YYYY-MM-DD
+  count: number;
+}
+
+export interface ActivityResponse {
+  activity: DailyActivity[];
+}
+
 export async function getPosts(page = 1, limit = 20): Promise<PostsResponse> {
   const res = await fetch(`${API_BASE}/api/v1/posts?page=${page}&limit=${limit}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch posts');
@@ -59,6 +68,39 @@ export async function createPost(formData: FormData): Promise<Post> {
 export async function deletePost(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/v1/posts/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete post');
+}
+
+export async function likePost(id: string): Promise<number> {
+  const res = await fetch(`${API_BASE}/api/v1/posts/${id}/like`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to like post');
+  const data = await res.json();
+  return data.likes as number;
+}
+
+export interface SearchParams {
+  q?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function searchPosts(params: SearchParams): Promise<PostsResponse> {
+  const p = new URLSearchParams();
+  if (params.q) p.set('q', params.q);
+  if (params.from) p.set('from', params.from);
+  if (params.to) p.set('to', params.to);
+  if (params.page) p.set('page', String(params.page));
+  if (params.limit) p.set('limit', String(params.limit));
+  const res = await fetch(`${API_BASE}/api/v1/search?${p.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to search posts');
+  return res.json();
+}
+
+export async function getActivity(days = 365): Promise<ActivityResponse> {
+  const res = await fetch(`${API_BASE}/api/v1/activity?days=${days}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch activity');
+  return res.json();
 }
 
 export function getExportURL(format: 'json' | 'csv', from?: string, to?: string): string {

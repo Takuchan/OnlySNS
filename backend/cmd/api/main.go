@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/lib/pq"
 	"github.com/takuchan/onlysns/internal/handler"
@@ -28,7 +31,7 @@ func main() {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
 
-	// Run migrations
+	// Run migrations (idempotent via IF NOT EXISTS)
 	migration, err := os.ReadFile("db/migrations/001_initial.sql")
 	if err != nil {
 		log.Fatalf("failed to read migration file: %v", err)
@@ -38,12 +41,29 @@ func main() {
 	}
 	log.Println("migrations applied")
 
+	// Ensure uploads directory exists
+	if err := os.MkdirAll("./uploads", 0755); err != nil {
+		log.Fatalf("failed to create uploads directory: %v", err)
+	}
+
 	postRepo := postgres.NewPostRepository(db)
 	postUsecase := usecase.NewPostUsecase(postRepo)
 	postHandler := handler.NewPostHandler(postUsecase)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	engWorker := worker.NewEngagementWorker(postRepo)
-	engWorker.Start()
+	engWorker.Start(ctx)
+
+	// Graceful shutdown on SIGINT/SIGTERM
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<-quit
+		log.Println("shutting down server...")
+		cancel()
+	}()
 
 	r := handler.SetupRouter(postHandler)
 	log.Println("starting server on :8080")

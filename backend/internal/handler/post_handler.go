@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -64,11 +65,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 			ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
 			mediaID := uuid.New().String()
 			filename := mediaID + ext
-
-			if err := os.MkdirAll("./uploads", 0755); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create uploads dir"})
-				return
-			}
 
 			dst, err := os.Create("./uploads/" + filename)
 			if err != nil {
@@ -184,17 +180,25 @@ func (h *PostHandler) ExportPosts(c *gin.Context) {
 		c.Header("Content-Disposition", "attachment; filename=posts.csv")
 		c.Header("Content-Type", "text/csv")
 		w := csv.NewWriter(c.Writer)
-		_ = w.Write([]string{"id", "content", "likes", "shares", "created_at"})
+		if err := w.Write([]string{"id", "content", "likes", "shares", "created_at"}); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to write CSV header"})
+			return
+		}
 		for _, p := range posts {
-			_ = w.Write([]string{
+			if err := w.Write([]string{
 				p.ID,
 				p.Content,
 				fmt.Sprintf("%d", p.Likes),
 				fmt.Sprintf("%d", p.Shares),
 				p.CreatedAt.Format(time.RFC3339),
-			})
+			}); err != nil {
+				return
+			}
 		}
 		w.Flush()
+		if err := w.Error(); err != nil {
+			log.Printf("csv flush error: %v", err)
+		}
 	default:
 		c.JSON(http.StatusOK, posts)
 	}

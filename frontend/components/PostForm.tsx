@@ -157,7 +157,7 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
         <div className="mt-2 flex flex-wrap gap-2">
           {files.map((f, i) => (
             <div key={i} className="relative group">
-              {f.type.startsWith('image') || f.type === 'image/gif' ? (
+              {f.type.startsWith('image') ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={URL.createObjectURL(f)}

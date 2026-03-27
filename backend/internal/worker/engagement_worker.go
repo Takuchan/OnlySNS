@@ -11,18 +11,25 @@ import (
 
 type EngagementWorker struct {
 	repo repository.PostRepository
+	rng  *rand.Rand
 }
 
 func NewEngagementWorker(repo repository.PostRepository) *EngagementWorker {
-	return &EngagementWorker{repo: repo}
+	return &EngagementWorker{
+		repo: repo,
+		rng:  rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
-func (w *EngagementWorker) Start() {
+func (w *EngagementWorker) Start(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(2 * time.Hour)
 		defer ticker.Stop()
 		for {
 			select {
+			case <-ctx.Done():
+				log.Println("engagement worker: shutting down")
+				return
 			case <-ticker.C:
 				w.run()
 			}
@@ -45,7 +52,7 @@ func (w *EngagementWorker) run() {
 			if maxInc < 1 {
 				maxInc = 1
 			}
-			likesIncrement = rand.Intn(maxInc) + 1
+			likesIncrement = w.rng.Intn(maxInc) + 1
 		}
 
 		sharesIncrement := 0
@@ -54,7 +61,7 @@ func (w *EngagementWorker) run() {
 			if maxInc < 1 {
 				maxInc = 1
 			}
-			sharesIncrement = rand.Intn(maxInc) + 1
+			sharesIncrement = w.rng.Intn(maxInc) + 1
 		}
 
 		newLikes := p.Likes + likesIncrement

@@ -19,16 +19,19 @@ export default function ExportModal({ onClose }: ExportModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md border border-gray-700">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+      <div className="rounded-xl p-6 w-full max-w-md" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Export Posts</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">✕</button>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Export Posts</h2>
+          <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >✕</button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Format</label>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Format</label>
             <div className="flex gap-3">
               {(['json', 'csv'] as const).map(f => (
                 <label key={f} className="flex items-center gap-2 cursor-pointer">
@@ -37,9 +40,8 @@ export default function ExportModal({ onClose }: ExportModalProps) {
                     value={f}
                     checked={format === f}
                     onChange={() => setFormat(f)}
-                    className="text-indigo-600"
                   />
-                  <span className="text-sm text-gray-300 uppercase">{f}</span>
+                  <span className="text-sm uppercase" style={{ color: 'var(--text-secondary)' }}>{f}</span>
                 </label>
               ))}
             </div>
@@ -51,30 +53,31 @@ export default function ExportModal({ onClose }: ExportModalProps) {
                 type="checkbox"
                 checked={allTime}
                 onChange={e => setAllTime(e.target.checked)}
-                className="text-indigo-600"
               />
-              <span className="text-sm text-gray-300">All time</span>
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>All time</span>
             </label>
           </div>
 
           {!allTime && (
             <div className="space-y-2">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">From</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>From</label>
                 <input
                   type="date"
                   value={from}
                   onChange={e => setFrom(e.target.value)}
-                  className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none focus:border-indigo-500"
+                  className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">To</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>To</label>
                 <input
                   type="date"
                   value={to}
                   onChange={e => setTo(e.target.value)}
-                  className="w-full bg-gray-800 text-white text-sm rounded-lg px-3 py-2 border border-gray-700 outline-none focus:border-indigo-500"
+                  className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                 />
               </div>
             </div>
@@ -84,13 +87,15 @@ export default function ExportModal({ onClose }: ExportModalProps) {
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
           >
             Cancel
           </button>
           <button
             onClick={handleDownload}
-            className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
           >
             Download
           </button>

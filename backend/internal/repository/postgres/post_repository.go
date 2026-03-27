@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/takuchan/onlysns/internal/domain"
@@ -199,6 +200,115 @@ func (r *postRepository) UpdateEngagement(ctx context.Context, id string, likes,
 		likes, shares, id,
 	)
 	return err
+}
+
+func (r *postRepository) LikePost(ctx context.Context, id string) (int, error) {
+	var likes int
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE posts SET likes = likes + 1, updated_at = NOW() WHERE id = $1 RETURNING likes`,
+		id,
+	).Scan(&likes)
+	return likes, err
+}
+
+func (r *postRepository) Search(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error) {
+	offset := (page - 1) * limit
+	args := []interface{}{}
+	argIdx := 1
+
+	where := "WHERE 1=1"
+	if keyword != "" {
+		where += fmt.Sprintf(" AND content ILIKE $%d", argIdx)
+		args = append(args, "%"+keyword+"%")
+		argIdx++
+	}
+	if from != nil {
+		where += fmt.Sprintf(" AND created_at >= $%d", argIdx)
+		args = append(args, from)
+		argIdx++
+	}
+	if to != nil {
+		where += fmt.Sprintf(" AND created_at <= $%d", argIdx)
+		args = append(args, to)
+		argIdx++
+	}
+
+	var total int
+	countArgs := make([]interface{}, len(args))
+	copy(countArgs, args)
+	if err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM posts "+where, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	queryArgs := make([]interface{}, len(args))
+	copy(queryArgs, args)
+	queryArgs = append(queryArgs, limit, offset)
+	rows, err := r.db.QueryContext(ctx,
+		fmt.Sprintf(`SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
+		 FROM posts %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1),
+		queryArgs...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var posts []*domain.Post
+	for rows.Next() {
+		p := &domain.Post{}
+		if err := rows.Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+			&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares); err != nil {
+			return nil, 0, err
+		}
+		p.Media = []domain.Media{}
+		p.CodeSnippets = []domain.CodeSnippet{}
+		posts = append(posts, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	for _, p := range posts {
+		if err := r.loadMedia(ctx, p); err != nil {
+			return nil, 0, err
+		}
+		if err := r.loadCodeSnippets(ctx, p); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	if posts == nil {
+		posts = []*domain.Post{}
+	}
+	return posts, total, nil
+}
+
+func (r *postRepository) GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date, COUNT(*) AS count
+		 FROM posts
+		 WHERE created_at >= NOW() - ($1 || ' days')::INTERVAL
+		 GROUP BY date
+		 ORDER BY date ASC`,
+		days,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []domain.DailyActivity
+	for rows.Next() {
+		var a domain.DailyActivity
+		if err := rows.Scan(&a.Date, &a.Count); err != nil {
+			return nil, err
+		}
+		result = append(result, a)
+	}
+	if result == nil {
+		result = []domain.DailyActivity{}
+	}
+	return result, rows.Err()
 }
 
 func (r *postRepository) loadMedia(ctx context.Context, p *domain.Post) error {

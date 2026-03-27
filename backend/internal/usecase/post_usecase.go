@@ -104,3 +104,15 @@ func (u *PostUsecase) DeletePost(ctx context.Context, id string) error {
 func (u *PostUsecase) ListForExport(ctx context.Context, from, to *time.Time) ([]*domain.Post, error) {
 	return u.repo.ListForExport(ctx, from, to)
 }
+
+func (u *PostUsecase) LikePost(ctx context.Context, id string) (int, error) {
+	return u.repo.LikePost(ctx, id)
+}
+
+func (u *PostUsecase) SearchPosts(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error) {
+	return u.repo.Search(ctx, keyword, from, to, page, limit)
+}
+
+func (u *PostUsecase) GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error) {
+	return u.repo.GetDailyActivity(ctx, days)
+}

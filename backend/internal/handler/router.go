@@ -16,6 +16,9 @@ func SetupRouter(postHandler *PostHandler) *gin.Engine {
 		api.POST("/posts", postHandler.CreatePost)
 		api.GET("/posts", postHandler.ListPosts)
 		api.DELETE("/posts/:id", postHandler.DeletePost)
+		api.POST("/posts/:id/like", postHandler.LikePost)
+		api.GET("/search", postHandler.SearchPosts)
+		api.GET("/activity", postHandler.GetActivity)
 		api.GET("/export", postHandler.ExportPosts)
 	}
 

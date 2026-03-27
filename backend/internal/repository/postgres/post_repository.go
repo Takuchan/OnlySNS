@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/takuchan/onlysns/internal/domain"
 )
 
@@ -25,10 +26,10 @@ func (r *postRepository) Create(ctx context.Context, post *domain.Post) error {
 	defer tx.Rollback()
 
 	err = tx.QueryRowContext(ctx,
-		`INSERT INTO posts (id, content, char_count, likes, shares, target_likes, target_shares)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO posts (id, content, tags, char_count, likes, shares, target_likes, target_shares)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 RETURNING created_at, updated_at`,
-		post.ID, post.Content, post.CharCount, post.Likes, post.Shares, post.TargetLikes, post.TargetShares,
+		post.ID, post.Content, pq.Array(post.Tags), post.CharCount, post.Likes, post.Shares, post.TargetLikes, post.TargetShares,
 	).Scan(&post.CreatedAt, &post.UpdatedAt)
 	if err != nil {
 		return err
@@ -68,7 +69,7 @@ func (r *postRepository) List(ctx context.Context, page, limit int) ([]*domain.P
 	}
 
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
+		`SELECT id, content, tags, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
 		 FROM posts ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
 		limit, offset,
 	)
@@ -80,7 +81,7 @@ func (r *postRepository) List(ctx context.Context, page, limit int) ([]*domain.P
 	var posts []*domain.Post
 	for rows.Next() {
 		p := &domain.Post{}
-		if err := rows.Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+		if err := rows.Scan(&p.ID, &p.Content, pq.Array(&p.Tags), &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
 			&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares); err != nil {
 			return nil, 0, err
 		}
@@ -110,9 +111,9 @@ func (r *postRepository) List(ctx context.Context, page, limit int) ([]*domain.P
 func (r *postRepository) GetByID(ctx context.Context, id string) (*domain.Post, error) {
 	p := &domain.Post{}
 	err := r.db.QueryRowContext(ctx,
-		`SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
+		`SELECT id, content, tags, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
 		 FROM posts WHERE id = $1`, id,
-	).Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+	).Scan(&p.ID, &p.Content, pq.Array(&p.Tags), &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
 		&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares)
 	if err != nil {
 		return nil, err
@@ -134,7 +135,7 @@ func (r *postRepository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *postRepository) ListForExport(ctx context.Context, from, to *time.Time) ([]*domain.Post, error) {
-	query := `SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares FROM posts`
+	query := `SELECT id, content, tags, char_count, created_at, updated_at, likes, shares, target_likes, target_shares FROM posts`
 	args := []interface{}{}
 
 	if from != nil && to != nil {
@@ -158,7 +159,7 @@ func (r *postRepository) ListForExport(ctx context.Context, from, to *time.Time)
 	var posts []*domain.Post
 	for rows.Next() {
 		p := &domain.Post{}
-		if err := rows.Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+		if err := rows.Scan(&p.ID, &p.Content, pq.Array(&p.Tags), &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
 			&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares); err != nil {
 			return nil, err
 		}
@@ -174,7 +175,7 @@ func (r *postRepository) ListForExport(ctx context.Context, from, to *time.Time)
 
 func (r *postRepository) ListForEngagement(ctx context.Context) ([]*domain.Post, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
+		`SELECT id, content, tags, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
 		 FROM posts WHERE likes < target_likes OR shares < target_shares`,
 	)
 	if err != nil {
@@ -185,7 +186,7 @@ func (r *postRepository) ListForEngagement(ctx context.Context) ([]*domain.Post,
 	var posts []*domain.Post
 	for rows.Next() {
 		p := &domain.Post{}
-		if err := rows.Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+		if err := rows.Scan(&p.ID, &p.Content, pq.Array(&p.Tags), &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
 			&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares); err != nil {
 			return nil, err
 		}
@@ -209,6 +210,15 @@ func (r *postRepository) LikePost(ctx context.Context, id string) (int, error) {
 		id,
 	).Scan(&likes)
 	return likes, err
+}
+
+func (r *postRepository) RepostPost(ctx context.Context, id string) (int, error) {
+	var shares int
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE posts SET shares = shares + 1, updated_at = NOW() WHERE id = $1 RETURNING shares`,
+		id,
+	).Scan(&shares)
+	return shares, err
 }
 
 func (r *postRepository) Search(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error) {
@@ -244,7 +254,7 @@ func (r *postRepository) Search(ctx context.Context, keyword string, from, to *t
 	copy(queryArgs, args)
 	queryArgs = append(queryArgs, limit, offset)
 	rows, err := r.db.QueryContext(ctx,
-		fmt.Sprintf(`SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
+		fmt.Sprintf(`SELECT id, content, tags, char_count, created_at, updated_at, likes, shares, target_likes, target_shares
 		 FROM posts %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, where, argIdx, argIdx+1),
 		queryArgs...,
 	)
@@ -256,7 +266,7 @@ func (r *postRepository) Search(ctx context.Context, keyword string, from, to *t
 	var posts []*domain.Post
 	for rows.Next() {
 		p := &domain.Post{}
-		if err := rows.Scan(&p.ID, &p.Content, &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
+		if err := rows.Scan(&p.ID, &p.Content, pq.Array(&p.Tags), &p.CharCount, &p.CreatedAt, &p.UpdatedAt,
 			&p.Likes, &p.Shares, &p.TargetLikes, &p.TargetShares); err != nil {
 			return nil, 0, err
 		}

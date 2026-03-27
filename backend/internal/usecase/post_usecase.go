@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"math"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -48,6 +49,7 @@ func isDoubleWidthChar(r rune) bool {
 
 type CreatePostInput struct {
 	Content    string
+	Tags       []string
 	Code       string
 	Language   string
 	MediaItems []domain.Media
@@ -59,11 +61,12 @@ func (u *PostUsecase) CreatePost(ctx context.Context, input CreatePostInput) (*d
 	post := &domain.Post{
 		ID:           uuid.New().String(),
 		Content:      input.Content,
+		Tags:         normalizeTags(input.Tags),
 		CharCount:    charCount,
 		Likes:        0,
 		Shares:       0,
-		TargetLikes:  rand.Intn(9951) + 50,  // 50 to 10000
-		TargetShares: rand.Intn(4991) + 10,  // 10 to 5000
+		TargetLikes:  randomEngagementTarget(),
+		TargetShares: randomEngagementTarget(),
 		Media:        []domain.Media{},
 		CodeSnippets: []domain.CodeSnippet{},
 	}
@@ -101,6 +104,10 @@ func (u *PostUsecase) DeletePost(ctx context.Context, id string) error {
 	return u.repo.Delete(ctx, id)
 }
 
+func (u *PostUsecase) GetPostByID(ctx context.Context, id string) (*domain.Post, error) {
+	return u.repo.GetByID(ctx, id)
+}
+
 func (u *PostUsecase) ListForExport(ctx context.Context, from, to *time.Time) ([]*domain.Post, error) {
 	return u.repo.ListForExport(ctx, from, to)
 }
@@ -109,10 +116,55 @@ func (u *PostUsecase) LikePost(ctx context.Context, id string) (int, error) {
 	return u.repo.LikePost(ctx, id)
 }
 
+func (u *PostUsecase) RepostPost(ctx context.Context, id string) (int, error) {
+	return u.repo.RepostPost(ctx, id)
+}
+
 func (u *PostUsecase) SearchPosts(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error) {
 	return u.repo.Search(ctx, keyword, from, to, page, limit)
 }
 
 func (u *PostUsecase) GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error) {
 	return u.repo.GetDailyActivity(ctx, days)
+}
+
+func randomEngagementTarget() int {
+	// Produce huge values with a heavy-tailed distribution so most are large and some are massive.
+	const minTarget = 100
+	const maxTarget = 500_000_000
+	raw := rand.Float64()
+	bias := math.Pow(raw, 0.35)
+	return minTarget + int(float64(maxTarget-minTarget)*bias)
+}
+
+func normalizeTags(tags []string) []string {
+	if len(tags) == 0 {
+		return []string{}
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			continue
+		}
+		if !strings.HasPrefix(trimmed, "#") {
+			trimmed = "#" + trimmed
+		}
+		if len([]rune(trimmed)) > 24 {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+		if len(out) >= 8 {
+			break
+		}
+	}
+	if out == nil {
+		return []string{}
+	}
+	return out
 }

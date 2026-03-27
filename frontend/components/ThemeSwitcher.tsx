@@ -3,9 +3,9 @@
 import { useTheme, Theme } from '@/lib/theme';
 
 const themes: { value: Theme; label: string; icon: string; title: string }[] = [
-  { value: 'light', label: 'Light', icon: '☀️', title: 'White Mode' },
-  { value: 'dark', label: 'Dark', icon: '🌙', title: 'Dark Mode' },
-  { value: 'homare', label: '我が誉', icon: '✨', title: 'Waga Homare Mode' },
+  { value: 'light', label: 'ライト', icon: '☀️', title: 'ライトモード' },
+  { value: 'dark', label: 'ダーク', icon: '🌙', title: 'ダークモード' },
+  { value: 'homare', label: 'わがほまれ', icon: '✨', title: 'わがほまれモード' },
 ];
 
 export default function ThemeSwitcher() {

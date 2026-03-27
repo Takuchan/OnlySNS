@@ -11,6 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/takuchan/onlysns/internal/handler"
 	"github.com/takuchan/onlysns/internal/repository/postgres"
+	"github.com/takuchan/onlysns/internal/service"
 	"github.com/takuchan/onlysns/internal/usecase"
 	"github.com/takuchan/onlysns/internal/worker"
 )
@@ -48,7 +49,14 @@ func main() {
 
 	postRepo := postgres.NewPostRepository(db)
 	postUsecase := usecase.NewPostUsecase(postRepo)
-	postHandler := handler.NewPostHandler(postUsecase)
+	ogpService := service.NewOGPService()
+	ollamaClient := service.NewOllamaClient(
+		os.Getenv("OLLAMA_BASE_URL"),
+		os.Getenv("OLLAMA_MODEL"),
+		os.Getenv("OLLAMA_EMBEDDING_MODEL"),
+	)
+	aiService := service.NewAIService(ollamaClient)
+	postHandler := handler.NewPostHandler(postUsecase, ogpService, aiService)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -15,15 +15,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/takuchan/onlysns/internal/domain"
+	"github.com/takuchan/onlysns/internal/service"
 	"github.com/takuchan/onlysns/internal/usecase"
 )
 
 type PostHandler struct {
 	postUsecase *usecase.PostUsecase
+	ogpService  *service.OGPService
+	aiService   *service.AIService
 }
 
-func NewPostHandler(postUsecase *usecase.PostUsecase) *PostHandler {
-	return &PostHandler{postUsecase: postUsecase}
+func NewPostHandler(postUsecase *usecase.PostUsecase, ogpService *service.OGPService, aiService *service.AIService) *PostHandler {
+	return &PostHandler{postUsecase: postUsecase, ogpService: ogpService, aiService: aiService}
 }
 
 func (h *PostHandler) CreatePost(c *gin.Context) {
@@ -89,6 +92,7 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 	input := usecase.CreatePostInput{
 		Content:    content,
+		Tags:       h.aiService.GenerateTags(c.Request.Context(), content),
 		Code:       code,
 		Language:   language,
 		MediaItems: mediaItems,
@@ -218,6 +222,103 @@ func (h *PostHandler) LikePost(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"likes": likes})
+}
+
+func (h *PostHandler) RepostPost(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	reposts, err := h.postUsecase.RepostPost(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"reposts": reposts})
+}
+
+func (h *PostHandler) FetchOGP(c *gin.Context) {
+	rawURL := c.Query("url")
+	if strings.TrimSpace(rawURL) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	meta, err := h.ogpService.Fetch(rawURL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, meta)
+}
+
+func (h *PostHandler) LatestTsukkomi(c *gin.Context) {
+	posts, _, err := h.postUsecase.ListPosts(c.Request.Context(), 1, 1)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(posts) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": h.aiService.Tsukkomi(c.Request.Context(), "")})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": h.aiService.Tsukkomi(c.Request.Context(), posts[0].Content),
+		"post_id": posts[0].ID,
+	})
+}
+
+func (h *PostHandler) SimplifyPost(c *gin.Context) {
+	id := c.Param("id")
+	post, err := h.postUsecase.GetPostByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"simplified": h.aiService.ExplainLikeFive(c.Request.Context(), post.Content)})
+}
+
+func (h *PostHandler) GeneratePostQuiz(c *gin.Context) {
+	id := c.Param("id")
+	post, err := h.postUsecase.GetPostByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	quiz := h.aiService.GenerateQuiz(c.Request.Context(), post.Content)
+	c.JSON(http.StatusOK, quiz)
+}
+
+func (h *PostHandler) RelatedPosts(c *gin.Context) {
+	id := c.Param("id")
+	limit := 3
+	if q := c.Query("limit"); q != "" {
+		if v, err := strconv.Atoi(q); err == nil && v > 0 && v <= 10 {
+			limit = v
+		}
+	}
+
+	target, err := h.postUsecase.GetPostByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	all, _, err := h.postUsecase.ListPosts(c.Request.Context(), 1, 500)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	related := h.aiService.RecommendRelated(c.Request.Context(), target, all, limit)
+	c.JSON(http.StatusOK, gin.H{"posts": related})
 }
 
 func (h *PostHandler) SearchPosts(c *gin.Context) {

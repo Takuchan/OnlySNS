@@ -8,7 +8,25 @@ const config: Config = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        roundedJp: ['"M PLUS Rounded 1c"', '"Kosugi Maru"', 'sans-serif'],
+      },
+      colors: {
+        snack: {
+          cream: '#fff7ed',
+          peach: '#ff7a59',
+          mint: '#18a999',
+          cocoa: '#3d2612',
+        },
+      },
+      borderRadius: {
+        bubble: '1.25rem',
+      },
+      boxShadow: {
+        candy: '0 10px 25px rgba(205, 126, 40, 0.12)',
+      },
+    },
   },
   plugins: [],
 };

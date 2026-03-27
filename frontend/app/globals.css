@@ -1,126 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ===========================
-   Theme CSS Variables
-   =========================== */
-
-/* Default (Dark) Theme */
 :root,
-[data-theme="dark"] {
-  --bg-primary: #030712;
-  --bg-secondary: #111827;
-  --bg-card: #1f2937;
-  --bg-input: #111827;
-  --border: #374151;
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-text: #ffffff;
-  --danger: #ef4444;
-  --like-color: #f43f5e;
-  --code-bg: #030712;
-  --code-text: #4ade80;
-}
-
-/* Light Theme */
 [data-theme="light"] {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --bg-input: #f1f5f9;
-  --border: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-text: #ffffff;
-  --danger: #ef4444;
-  --like-color: #f43f5e;
-  --code-bg: #1e293b;
-  --code-text: #4ade80;
+  --bg-primary: #fff7ed;
+  --bg-secondary: #fff1c6;
+  --bg-card: #fffdf5;
+  --bg-input: #fffdf5;
+  --border: #f5be67;
+  --text-primary: #3d2612;
+  --text-secondary: #6a421f;
+  --text-muted: #a57b51;
+  --accent: #ff7a59;
+  --accent-hover: #ff5a33;
+  --accent-text: #fffdf8;
+  --danger: #dc2f2f;
+  --warning: #f59e0b;
+  --like-color: #ff4d6d;
+  --repost-color: #18a999;
+  --code-bg: #2f2a2f;
+  --code-text: #9bf6a5;
+  --chip-bg: #ffe3b3;
+  --chip-text: #70401b;
+  --card-gradient: radial-gradient(circle at 12% 18%, #fffbe9 0%, #fff4db 55%, #ffeccc 100%);
+  --soft-shadow: 0 10px 25px rgba(205, 126, 40, 0.12);
+  --button-shadow: 0 8px 14px rgba(255, 122, 89, 0.22);
 }
 
-/* Waga Homare (My Glory) Theme */
+[data-theme="dark"] {
+  --bg-primary: #2a232a;
+  --bg-secondary: #3a3042;
+  --bg-card: #43314a;
+  --bg-input: #342b3c;
+  --border: #5d4666;
+  --text-primary: #fff5e6;
+  --text-secondary: #f8d6a6;
+  --text-muted: #caad8a;
+  --accent: #ff9f68;
+  --accent-hover: #ff8a4e;
+  --accent-text: #2b1e1b;
+  --danger: #ff6b6b;
+  --warning: #ffd166;
+  --like-color: #ff7597;
+  --repost-color: #4cd2c2;
+  --code-bg: #201a26;
+  --code-text: #8ff0b0;
+  --chip-bg: #644e70;
+  --chip-text: #ffdfb3;
+  --card-gradient: radial-gradient(circle at 18% 12%, #544062 0%, #43314a 60%, #362b3a 100%);
+  --soft-shadow: 0 12px 28px rgba(12, 7, 15, 0.4);
+  --button-shadow: 0 8px 16px rgba(255, 159, 104, 0.34);
+}
+
 [data-theme="homare"] {
-  --bg-primary: #0a0800;
-  --bg-secondary: #141006;
-  --bg-card: #1c1608;
-  --bg-input: #141006;
-  --border: #3d2f00;
-  --text-primary: #ffd700;
-  --text-secondary: #c9a227;
-  --text-muted: #8b6914;
-  --accent: #d4a017;
-  --accent-hover: #b8860b;
-  --accent-text: #0a0800;
-  --danger: #ef4444;
-  --like-color: #ff6b35;
-  --code-bg: #0a0800;
-  --code-text: #ffd700;
+  --bg-primary: #f3fff5;
+  --bg-secondary: #ddf5df;
+  --bg-card: #fafff8;
+  --bg-input: #f5fff6;
+  --border: #8bcf97;
+  --text-primary: #173a23;
+  --text-secondary: #2f6e43;
+  --text-muted: #5f9a73;
+  --accent: #2aae67;
+  --accent-hover: #219357;
+  --accent-text: #f8fff9;
+  --danger: #d64045;
+  --warning: #f7b955;
+  --like-color: #ff5f7e;
+  --repost-color: #149f86;
+  --code-bg: #113226;
+  --code-text: #7ef1b4;
+  --chip-bg: #d6f3df;
+  --chip-text: #1f6037;
+  --card-gradient: radial-gradient(circle at 14% 20%, #ffffff 0%, #ebffef 55%, #dbf8e2 100%);
+  --soft-shadow: 0 10px 22px rgba(44, 126, 68, 0.14);
+  --button-shadow: 0 8px 14px rgba(42, 174, 103, 0.3);
 }
 
-/* ===========================
-   Base Styles
-   =========================== */
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  margin: 0;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  background:
+    radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 45%),
+    radial-gradient(circle at 90% 20%, color-mix(in srgb, var(--repost-color) 15%, transparent), transparent 42%),
+    linear-gradient(160deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 75%, #ffffff) 100%);
+  color: var(--text-primary);
+  font-family: 'M PLUS Rounded 1c', 'Kosugi Maru', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
 }
 
-/* Smooth transitions for theme changes */
-*, *::before, *::after {
-  transition-property: background-color, border-color, color;
-  transition-duration: 0.2s;
-  transition-timing-function: ease;
-}
-
-/* Remove transition from animations (avoid sluggishness) */
-[data-no-transition] * {
-  transition: none !important;
-}
-
-/* Page fade-in animation */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 .page-enter {
-  animation: fadeIn 0.35s ease forwards;
+  animation: floatIn 0.45s cubic-bezier(0.18, 0.84, 0.32, 1) forwards;
 }
 
-/* Card hover lift */
-@keyframes cardHover {
-  from { transform: translateY(0); }
-  to { transform: translateY(-2px); }
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* Like button pop animation */
-@keyframes likePop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.4); }
-  100% { transform: scale(1); }
+@keyframes engagePop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.26) rotate(-6deg);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-.like-pop {
-  animation: likePop 0.3s ease;
+.engage-pop {
+  animation: engagePop 0.36s ease;
 }
 
-/* Streak heatmap cell */
 .heatmap-cell {
-  border-radius: 2px;
-  transition: transform 0.1s ease;
+  border-radius: 4px;
+  transition: transform 0.12s ease;
 }
 
 .heatmap-cell:hover {
-  transform: scale(1.4);
-  z-index: 10;
+  transform: scale(1.25);
+  z-index: 2;
   position: relative;
 }

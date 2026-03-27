@@ -8,10 +8,10 @@ interface CalendarViewProps {
   posts: Post[];
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+  '1月','2月','3月','4月','5月','6月',
+  '7月','8月','9月','10月','11月','12月'
 ];
 
 export default function CalendarView({ posts }: CalendarViewProps) {
@@ -130,10 +130,10 @@ export default function CalendarView({ posts }: CalendarViewProps) {
       {selectedDate && (
         <div className="mt-4">
           <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-            📅 {selectedDate} — {selectedPosts.length} post{selectedPosts.length !== 1 ? 's' : ''}
+            📅 {selectedDate} - {selectedPosts.length}件
           </h4>
           {selectedPosts.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No posts on this day.</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>この日の投稿はありません。</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {selectedPosts.map(post => (

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /home/tk/OnlySNS/frontend && npm run build$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

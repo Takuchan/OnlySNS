@@ -53,6 +53,7 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
   const [simplified, setSimplified] = useState('');
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [related, setRelated] = useState<Post[]>([]);
+  const [aiError, setAiError] = useState('');
   const [aiLoading, setAiLoading] = useState<'simplify' | 'quiz' | 'related' | ''>('');
 
   useEffect(() => {
@@ -120,9 +121,12 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
 
   const handleSimplify = async () => {
     setAiLoading('simplify');
+    setAiError('');
     try {
       const text = await simplifyPost(post.id);
       setSimplified(text);
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : 'やさしい説明の取得に失敗しました。');
     } finally {
       setAiLoading('');
     }
@@ -130,9 +134,12 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
 
   const handleQuiz = async () => {
     setAiLoading('quiz');
+    setAiError('');
     try {
       const q = await generateQuiz(post.id);
       setQuiz(q);
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : 'クイズ生成に失敗しました。');
     } finally {
       setAiLoading('');
     }
@@ -140,9 +147,15 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
 
   const handleRelated = async () => {
     setAiLoading('related');
+    setAiError('');
     try {
       const posts = await getRelatedPosts(post.id, 3);
       setRelated(posts);
+      if (posts.length === 0) {
+        setAiError('関連投稿が見つかりませんでした。');
+      }
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : '関連投稿の取得に失敗しました。');
     } finally {
       setAiLoading('');
     }
@@ -256,24 +269,30 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           onClick={handleSimplify}
-          className="text-xs px-3 py-1.5 rounded-full border"
+          disabled={aiLoading !== ''}
+          className="text-xs px-3 py-1.5 rounded-full border disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-1.5"
           style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
         >
-          {aiLoading === 'simplify' ? 'やさしく説明中...' : 'やさしく説明(ELI5)'}
+          {aiLoading === 'simplify' && <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+          <span>{aiLoading === 'simplify' ? 'AIが考えています' : 'AIの反応'}</span>
         </button>
         <button
           onClick={handleQuiz}
-          className="text-xs px-3 py-1.5 rounded-full border"
+          disabled={aiLoading !== ''}
+          className="text-xs px-3 py-1.5 rounded-full border disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-1.5"
           style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
         >
-          {aiLoading === 'quiz' ? 'クイズ生成中...' : '4択クイズを作る'}
+          {aiLoading === 'quiz' && <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+          <span>{aiLoading === 'quiz' ? 'クイズ生成中...' : '4択クイズを作る'}</span>
         </button>
         <button
           onClick={handleRelated}
-          className="text-xs px-3 py-1.5 rounded-full border"
+          disabled={aiLoading !== ''}
+          className="text-xs px-3 py-1.5 rounded-full border disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-1.5"
           style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
         >
-          {aiLoading === 'related' ? '関連を探索中...' : '関連投稿を探す'}
+          {aiLoading === 'related' && <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+          <span>{aiLoading === 'related' ? '関連を探索中...' : '関連投稿を探す'}</span>
         </button>
       </div>
 
@@ -309,6 +328,12 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {aiError && (
+        <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px dashed var(--danger)' }}>
+          <p className="text-xs" style={{ color: 'var(--danger)' }}>{aiError}</p>
         </div>
       )}
     </div>

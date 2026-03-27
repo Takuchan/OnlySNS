@@ -24,7 +24,7 @@ func NewEngagementWorker(repo repository.PostRepository) *EngagementWorker {
 
 func (w *EngagementWorker) Start(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(8 * time.Second)
+		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		for {
 			select {
@@ -47,8 +47,8 @@ func (w *EngagementWorker) run() {
 	}
 
 	for _, p := range posts {
-		likesIncrement := w.organicStep(p.Likes, p.TargetLikes)
-		sharesIncrement := w.organicStep(p.Shares, p.TargetShares)
+		likesIncrement := w.organicStep(p.CreatedAt, p.Likes, p.TargetLikes)
+		sharesIncrement := w.organicStep(p.CreatedAt, p.Shares, p.TargetShares)
 
 		newLikes := p.Likes + likesIncrement
 		if newLikes > p.TargetLikes {
@@ -66,42 +66,64 @@ func (w *EngagementWorker) run() {
 	}
 }
 
-func (w *EngagementWorker) organicStep(current, target int) int {
+func (w *EngagementWorker) organicStep(createdAt time.Time, current, target int) int {
 	remaining := target - current
 	if remaining <= 0 {
 		return 0
 	}
 
-	progress := 0.0
-	if target > 0 {
-		progress = float64(current) / float64(target)
+	age := time.Since(createdAt)
+	if age < 0 {
+		age = 0
 	}
-	if progress < 0 {
-		progress = 0
-	}
-	if progress > 1 {
-		progress = 1
+	const growDuration = 24 * time.Hour
+	timeRatio := math.Min(age.Seconds()/growDuration.Seconds(), 1)
+
+	// Ease-out curve: faster in middle phase, gentle near start/end.
+	progress := 1 - math.Pow(1-timeRatio, 2)
+	expected := int(math.Round(float64(target) * progress))
+	if expected > target {
+		expected = target
 	}
 
-	// Bigger jumps early, smaller towards saturation with random bursts.
-	curve := math.Pow(1-progress, 1.8)
-	minStep := 1 + target/50_000_000
-	maxStep := int(float64(remaining)*0.12*curve) + minStep
-	if maxStep < minStep {
-		maxStep = minStep
+	baseStep := expected - current
+	if baseStep <= 0 {
+		// Tiny random nudge to avoid long flat periods.
+		if timeRatio < 1 && w.rng.Float64() < 0.08 {
+			baseStep = 1
+		} else {
+			return 0
+		}
 	}
 
-	step := minStep
-	if maxStep > minStep {
-		step += w.rng.Intn(maxStep-minStep+1)
+	// Cap per-minute jumps to keep growth natural.
+	maxPerMinute := max(1, target/600)
+	if maxPerMinute > 18 {
+		maxPerMinute = 18
 	}
+	step := min(baseStep, maxPerMinute)
 
-	if w.rng.Float64() < 0.08 {
-		step += w.rng.Intn(maxStep + 1)
+	if step > 1 {
+		jitter := w.rng.Intn(step/2 + 1)
+		step = max(1, step-jitter)
 	}
 
 	if step > remaining {
 		step = remaining
 	}
 	return step
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

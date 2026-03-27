@@ -26,6 +26,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [limit, setLimit] = useState(20);
   const [tsukkomi, setTsukkomi] = useState('投稿するとAIつっこみがここに表示されるで。');
+  const [tsukkomiLoading, setTsukkomiLoading] = useState(false);
 
   useEffect(() => {
     setLimit(getFeedLimit());
@@ -49,11 +50,14 @@ export default function Home() {
   }, [limit]);
 
   const fetchTsukkomi = useCallback(async () => {
+    setTsukkomiLoading(true);
     try {
       const data = await getLatestTsukkomi();
       setTsukkomi(data.message);
-    } catch {
-      setTsukkomi('つっこみ取得に失敗。少し時間をおいて再試行してみて。');
+    } catch (e: unknown) {
+      setTsukkomi(e instanceof Error ? e.message : 'つっこみ取得に失敗。少し時間をおいて再試行してみて。');
+    } finally {
+      setTsukkomiLoading(false);
     }
   }, []);
 
@@ -205,10 +209,12 @@ export default function Home() {
             <p className="text-sm mt-2 leading-6" style={{ color: 'var(--text-secondary)' }}>{tsukkomi}</p>
             <button
               onClick={fetchTsukkomi}
-              className="mt-3 text-xs px-3 py-1.5 rounded-full border"
+              disabled={tsukkomiLoading}
+              className="mt-3 text-xs px-3 py-1.5 rounded-full border disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
               style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-secondary)' }}
             >
-              つっこみを更新
+              {tsukkomiLoading && <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />}
+              <span>{tsukkomiLoading ? '更新中...' : 'つっこみを更新'}</span>
             </button>
           </div>
         </aside>

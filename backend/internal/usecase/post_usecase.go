@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"math"
 	"math/rand"
 	"regexp"
 	"strings"
@@ -65,8 +64,8 @@ func (u *PostUsecase) CreatePost(ctx context.Context, input CreatePostInput) (*d
 		CharCount:    charCount,
 		Likes:        0,
 		Shares:       0,
-		TargetLikes:  randomEngagementTarget(),
-		TargetShares: randomEngagementTarget(),
+		TargetLikes:  randomLikeTarget(),
+		TargetShares: randomShareTarget(),
 		Media:        []domain.Media{},
 		CodeSnippets: []domain.CodeSnippet{},
 	}
@@ -128,13 +127,34 @@ func (u *PostUsecase) GetDailyActivity(ctx context.Context, days int) ([]domain.
 	return u.repo.GetDailyActivity(ctx, days)
 }
 
-func randomEngagementTarget() int {
-	// Produce huge values with a heavy-tailed distribution so most are large and some are massive.
-	const minTarget = 100
-	const maxTarget = 500_000_000
-	raw := rand.Float64()
-	bias := math.Pow(raw, 0.35)
-	return minTarget + int(float64(maxTarget-minTarget)*bias)
+func randomLikeTarget() int {
+	// Casual personal-use range: mostly tens to low thousands, rarely around ten-thousands.
+	r := rand.Float64()
+	switch {
+	case r < 0.70:
+		return rand.Intn(220) + 30 // 30-249
+	case r < 0.92:
+		return rand.Intn(1900) + 250 // 250-2149
+	case r < 0.99:
+		return rand.Intn(6000) + 2200 // 2200-8199
+	default:
+		return rand.Intn(4000) + 8200 // 8200-12199
+	}
+}
+
+func randomShareTarget() int {
+	// Repost counts are generally much smaller than likes.
+	r := rand.Float64()
+	switch {
+	case r < 0.75:
+		return rand.Intn(60) + 5 // 5-64
+	case r < 0.94:
+		return rand.Intn(260) + 65 // 65-324
+	case r < 0.99:
+		return rand.Intn(650) + 325 // 325-974
+	default:
+		return rand.Intn(700) + 975 // 975-1674
+	}
 }
 
 func normalizeTags(tags []string) []string {

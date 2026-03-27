@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -33,7 +34,7 @@ func (s *AIService) GenerateTags(ctx context.Context, content string) []string {
 	prompt := fmt.Sprintf(`あなたは学習SNS用のタグ生成アシスタントです。
 以下の日本語テキストから検索しやすいタグを3〜6個提案してください。
 - 必ずJSONのみで返す
-- 形式: {"tags":["#Go言語","#Docker"]}
+- 形式: {"tags":["タグ名","タグ名"]}
 - 各タグは日本語中心、先頭は#、最大24文字
 - 個人情報や差別表現は禁止
 
@@ -61,6 +62,7 @@ func (s *AIService) Tsukkomi(ctx context.Context, content string) string {
 以下の学習投稿に対して、短くフレンドリーで少しユーモアのある"つっこみ"を1〜2文で返してください。
 - 上から目線禁止
 - 攻撃的表現禁止
+- 必ずポジティブに励ます
 - 日本語のみ
 
 投稿:
@@ -69,25 +71,54 @@ func (s *AIService) Tsukkomi(ctx context.Context, content string) string {
 	if err != nil || strings.TrimSpace(res) == "" {
 		return "ナイス学習！コツコツ積み上げてるの、ちゃんと強いで。"
 	}
-	return trimToRunes(res, 140)
+	return trimToRunes(res, 500)
 }
 
-func (s *AIService) ExplainLikeFive(ctx context.Context, content string) string {
-	prompt := fmt.Sprintf(`次の内容を、5歳にも伝わるやさしい日本語で説明してください。
-- たとえ話を1つ入れる
-- 3〜6文
-- 専門用語はかみくだく
+func (s *AIService) TsukkomiFromTrend(ctx context.Context, posts []*domain.Post) string {
+	if len(posts) == 0 {
+		return "今日の学習ログを投稿すると、ここにゆるいつっこみが出るで。"
+	}
 
-内容:
-%s`, content)
+	limit := minInt(len(posts), 30)
+	recent := posts[:limit]
+	summary := buildTrendSummary(recent)
+
+	prompt := fmt.Sprintf(`あなたは学習を応援する日本語AIです。
+ユーザーの投稿傾向サマリーを読んで、ポジティブで軽いユーモアのある"つっこみ"を2文以内で返してください。
+制約:
+- 100文字以内
+- 褒める要素を1つ以上入れる
+- 「次にやると良さそうな小さな一歩」を自然に1つ入れる
+- 断定的な批判は禁止
+
+投稿傾向サマリー:
+%s`, summary)
+
+	res, err := s.client.Generate(ctx, prompt, 0.65)
+	if err != nil || strings.TrimSpace(res) == "" {
+		return "最近の積み上げ、めっちゃええ感じやん。次は5分だけ復習タイム入れたら、さらに仕上がるで。"
+	}
+	return trimToRunes(res, 100)
+}
+
+func (s *AIService) ExplainLikeFive(ctx context.Context, content string) (string, error) {
+	prompt := fmt.Sprintf(`この投稿に対する反応を200文字以内で人間らしく反応してください。寄り添ってください。`, content)
+
 	res, err := s.client.Generate(ctx, prompt, 0.4)
 	if err != nil || strings.TrimSpace(res) == "" {
-		return "うまく説明を作れなかったので、もう一度ためしてみてね。"
+		res, err = s.client.Generate(ctx, prompt, 0.2)
+		if err != nil {
+			return "", fmt.Errorf("eli5 generation failed: %w", err)
+		}
 	}
-	return strings.TrimSpace(res)
+	clean := strings.TrimSpace(res)
+	if clean == "" {
+		return "", errors.New("eli5 generation returned empty response")
+	}
+	return clean, nil
 }
 
-func (s *AIService) GenerateQuiz(ctx context.Context, content string) Quiz {
+func (s *AIService) GenerateQuiz(ctx context.Context, content string) (Quiz, error) {
 	prompt := fmt.Sprintf(`次の学習内容から4択クイズを1問だけ作成してください。
 必ずJSONのみで返してください。
 形式:
@@ -96,22 +127,28 @@ func (s *AIService) GenerateQuiz(ctx context.Context, content string) Quiz {
 - 日本語のみ
 - answer_indexは0〜3
 - choicesは4つ
+- 選択肢は紛らわしいが公平に
+- explanationは正解理由を簡潔に
 
 内容:
 %s`, content)
 
 	raw, err := s.client.GenerateJSON(ctx, prompt)
-	if err != nil {
-		return fallbackQuiz()
+	if err != nil || strings.TrimSpace(raw) == "" {
+		raw, err = s.client.Generate(ctx, prompt, 0.2)
+		if err != nil {
+			return Quiz{}, fmt.Errorf("quiz generation failed: %w", err)
+		}
 	}
-	var q Quiz
-	if err := json.Unmarshal([]byte(raw), &q); err != nil {
-		return fallbackQuiz()
+
+	q, err := parseQuiz(raw)
+	if err != nil {
+		return Quiz{}, err
 	}
 	if len(q.Choices) != 4 || q.AnswerIndex < 0 || q.AnswerIndex > 3 || strings.TrimSpace(q.Question) == "" {
-		return fallbackQuiz()
+		return Quiz{}, errors.New("quiz result has invalid format")
 	}
-	return q
+	return q, nil
 }
 
 type relatedCandidate struct {
@@ -210,13 +247,61 @@ func trimToRunes(s string, max int) string {
 	return string(r[:max]) + "…"
 }
 
-func fallbackQuiz() Quiz {
-	return Quiz{
-		Question:    "この投稿のテーマに最も近いものはどれ？",
-		Choices:     []string{"用語の暗記", "理解の確認", "実装の振り返り", "雑談"},
-		AnswerIndex: 2,
-		Explanation: "技術投稿は、実装や学習内容の振り返りとして読むと理解が深まります。",
+func parseQuiz(raw string) (Quiz, error) {
+	var q Quiz
+	if err := json.Unmarshal([]byte(raw), &q); err == nil {
+		return q, nil
 	}
+
+	jsonText := extractJSONObject(raw)
+	if jsonText == "" {
+		return Quiz{}, errors.New("quiz json not found in model response")
+	}
+	if err := json.Unmarshal([]byte(jsonText), &q); err != nil {
+		return Quiz{}, fmt.Errorf("failed to parse quiz json: %w", err)
+	}
+	return q, nil
+}
+
+func extractJSONObject(raw string) string {
+	start := strings.Index(raw, "{")
+	if start == -1 {
+		return ""
+	}
+	depth := 0
+	inString := false
+	escaped := false
+	for i := start; i < len(raw); i++ {
+		ch := raw[i]
+		if inString {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if ch == '\\' {
+				escaped = true
+				continue
+			}
+			if ch == '"' {
+				inString = false
+			}
+			continue
+		}
+		if ch == '"' {
+			inString = true
+			continue
+		}
+		if ch == '{' {
+			depth++
+		}
+		if ch == '}' {
+			depth--
+			if depth == 0 {
+				return raw[start : i+1]
+			}
+		}
+	}
+	return ""
 }
 
 func lexicalFallback(target *domain.Post, all []*domain.Post, limit int) []*domain.Post {
@@ -270,4 +355,72 @@ func overlap(a, b map[string]struct{}) int {
 		}
 	}
 	return score
+}
+
+func buildTrendSummary(posts []*domain.Post) string {
+	tokenCount := map[string]int{}
+	tagCount := map[string]int{}
+	totalChars := 0
+	for _, p := range posts {
+		totalChars += len([]rune(p.Content))
+		for t := range tokenize(p.Content) {
+			tokenCount[t]++
+		}
+		for _, tg := range p.Tags {
+			if strings.TrimSpace(tg) == "" {
+				continue
+			}
+			tagCount[tg]++
+		}
+	}
+
+	topTokens := topKeys(tokenCount, 5)
+	topTags := topKeys(tagCount, 4)
+	avgChars := 0
+	if len(posts) > 0 {
+		avgChars = totalChars / len(posts)
+	}
+
+	return fmt.Sprintf(
+		"直近投稿数: %d\n平均文字数: %d\n頻出キーワード: %s\n頻出タグ: %s",
+		len(posts),
+		avgChars,
+		strings.Join(topTokens, ", "),
+		strings.Join(topTags, ", "),
+	)
+}
+
+func topKeys(m map[string]int, n int) []string {
+	type kv struct {
+		k string
+		v int
+	}
+	arr := make([]kv, 0, len(m))
+	for k, v := range m {
+		arr = append(arr, kv{k: k, v: v})
+	}
+	sort.Slice(arr, func(i, j int) bool {
+		if arr[i].v == arr[j].v {
+			return arr[i].k < arr[j].k
+		}
+		return arr[i].v > arr[j].v
+	})
+	if len(arr) > n {
+		arr = arr[:n]
+	}
+	out := make([]string, 0, len(arr))
+	for _, x := range arr {
+		out = append(out, x.k)
+	}
+	if len(out) == 0 {
+		return []string{"(なし)"}
+	}
+	return out
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

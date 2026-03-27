@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -257,18 +258,23 @@ func (h *PostHandler) FetchOGP(c *gin.Context) {
 }
 
 func (h *PostHandler) LatestTsukkomi(c *gin.Context) {
-	posts, _, err := h.postUsecase.ListPosts(c.Request.Context(), 1, 1)
+	posts, _, err := h.postUsecase.ListPosts(c.Request.Context(), 1, 50)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Use background context with 150s timeout for AI processing
+	aiCtx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
+	defer cancel()
+
 	if len(posts) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": h.aiService.Tsukkomi(c.Request.Context(), "")})
+		c.JSON(http.StatusOK, gin.H{"message": h.aiService.TsukkomiFromTrend(aiCtx, nil)})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": h.aiService.Tsukkomi(c.Request.Context(), posts[0].Content),
+		"message": h.aiService.TsukkomiFromTrend(aiCtx, posts),
 		"post_id": posts[0].ID,
 	})
 }
@@ -281,7 +287,17 @@ func (h *PostHandler) SimplifyPost(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"simplified": h.aiService.ExplainLikeFive(c.Request.Context(), post.Content)})
+	// Use background context with 150s timeout for AI processing
+	aiCtx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
+	defer cancel()
+
+	simplified, err := h.aiService.ExplainLikeFive(aiCtx, post.Content)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "AI説明の生成に失敗しました: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"simplified": simplified})
 }
 
 func (h *PostHandler) GeneratePostQuiz(c *gin.Context) {
@@ -292,7 +308,15 @@ func (h *PostHandler) GeneratePostQuiz(c *gin.Context) {
 		return
 	}
 
-	quiz := h.aiService.GenerateQuiz(c.Request.Context(), post.Content)
+	// Use background context with 150s timeout for AI processing
+	aiCtx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
+	defer cancel()
+
+	quiz, err := h.aiService.GenerateQuiz(aiCtx, post.Content)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "AIクイズ生成に失敗しました: " + err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, quiz)
 }
 
@@ -317,7 +341,11 @@ func (h *PostHandler) RelatedPosts(c *gin.Context) {
 		return
 	}
 
-	related := h.aiService.RecommendRelated(c.Request.Context(), target, all, limit)
+	// Use background context with 150s timeout for AI processing
+	aiCtx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
+	defer cancel()
+
+	related := h.aiService.RecommendRelated(aiCtx, target, all, limit)
 	c.JSON(http.StatusOK, gin.H{"posts": related})
 }
 

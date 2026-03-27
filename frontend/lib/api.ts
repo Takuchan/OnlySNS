@@ -111,20 +111,29 @@ export async function fetchOGP(url: string): Promise<OGPPreview> {
 
 export async function getLatestTsukkomi(): Promise<{ message: string; post_id?: string }> {
   const res = await fetch(`${API_BASE}/api/v1/ai/tsukkomi/latest`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch tsukkomi');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'つっこみの取得に失敗しました');
+  }
   return res.json();
 }
 
 export async function simplifyPost(id: string): Promise<string> {
   const res = await fetch(`${API_BASE}/api/v1/ai/posts/${id}/simplify`, { method: 'POST' });
-  if (!res.ok) throw new Error('Failed to simplify post');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'やさしい説明の生成に失敗しました');
+  }
   const data = await res.json();
   return data.simplified as string;
 }
 
 export async function generateQuiz(id: string): Promise<Quiz> {
   const res = await fetch(`${API_BASE}/api/v1/ai/posts/${id}/quiz`, { method: 'POST' });
-  if (!res.ok) throw new Error('Failed to generate quiz');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || '4択クイズの生成に失敗しました');
+  }
   return res.json();
 }
 

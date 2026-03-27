@@ -32,7 +32,7 @@ func NewOllamaClient(baseURL, generationModel, embeddingModel string) *OllamaCli
 		baseURL:         strings.TrimRight(baseURL, "/"),
 		generationModel: generationModel,
 		embeddingModel:  embeddingModel,
-		httpClient:      &http.Client{Timeout: 20 * time.Second},
+		httpClient:      &http.Client{Timeout: 120 * time.Second},
 	}
 }
 
@@ -55,6 +55,11 @@ type embeddingRequest struct {
 
 type embeddingResponse struct {
 	Embedding []float64 `json:"embedding"`
+}
+
+type pullRequest struct {
+	Name   string `json:"name"`
+	Stream bool   `json:"stream"`
 }
 
 func (c *OllamaClient) Generate(ctx context.Context, prompt string, temperature float64) (string, error) {
@@ -100,6 +105,16 @@ func (c *OllamaClient) Embeddings(ctx context.Context, text string) ([]float64, 
 		return nil, fmt.Errorf("empty embedding vector")
 	}
 	return resp.Embedding, nil
+}
+
+func (c *OllamaClient) PullModel(ctx context.Context, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil
+	}
+	reqBody := pullRequest{Name: name, Stream: false}
+	var out map[string]interface{}
+	return c.postJSON(ctx, "/api/pull", reqBody, &out)
 }
 
 func (c *OllamaClient) postJSON(ctx context.Context, path string, reqBody any, out any) error {

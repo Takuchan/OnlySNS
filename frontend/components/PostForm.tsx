@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
-import { createPost, Post } from '@/lib/api';
+import { useState, useRef, useEffect, ChangeEvent } from 'react';
+import { createPost, Post, aiCaption } from '@/lib/api';
+import { t } from '@/lib/i18n';
+import URLPreview from '@/components/URLPreview';
 
 interface PostFormProps {
   onPostCreated: (post: Post) => void;

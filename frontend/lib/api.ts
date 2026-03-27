@@ -17,6 +17,21 @@ export interface CodeSnippet {
   created_at: string;
 }
 
+export interface OGPData {
+  title: string;
+  description: string;
+  image: string;
+  url: string;
+}
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  content: string;
+  is_ai: boolean;
+  created_at: string;
+}
+
 export interface Post {
   id: string;
   content: string;
@@ -29,6 +44,7 @@ export interface Post {
   target_shares: number;
   media: Media[];
   code_snippets: CodeSnippet[];
+  comments: Comment[];
 }
 
 export interface PostsResponse {
@@ -108,4 +124,79 @@ export function getExportURL(format: 'json' | 'csv', from?: string, to?: string)
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   return `${API_BASE}/api/v1/export?${params.toString()}`;
+}
+
+export async function unlikePost(id: string): Promise<number> {
+  const res = await fetch(`${API_BASE}/api/v1/posts/${id}/like`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to unlike post');
+  const data = await res.json();
+  return data.likes as number;
+}
+
+export async function fetchOGP(url: string): Promise<OGPData> {
+  const params = new URLSearchParams({ url });
+  const res = await fetch(`${API_BASE}/api/v1/ogp?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch OGP');
+  return res.json();
+}
+
+export async function analyzeText(text: string): Promise<{ words: Array<{ word: string; count: number }> }> {
+  const res = await fetch(`${API_BASE}/api/v1/analyze/text`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error('Failed to analyze text');
+  return res.json();
+}
+
+export async function aiCodeReview(code: string, language: string): Promise<{ response: string }> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/code-review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, language }),
+  });
+  if (!res.ok) throw new Error('AI unavailable');
+  return res.json();
+}
+
+export async function aiSummarize(content: string): Promise<{ response: string }> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/summarize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error('AI unavailable');
+  return res.json();
+}
+
+export async function aiExtractEntities(content: string): Promise<{ response: string }> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/extract-entities`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error('AI unavailable');
+  return res.json();
+}
+
+export async function aiNextStep(topics: string[]): Promise<{ response: string }> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/next-step`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topics }),
+  });
+  if (!res.ok) throw new Error('AI unavailable');
+  return res.json();
+}
+
+export async function aiCaption(imageFile: File): Promise<{ response: string }> {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  const res = await fetch(`${API_BASE}/api/v1/ai/caption`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('AI unavailable');
+  return res.json();
 }

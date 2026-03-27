@@ -4,7 +4,7 @@ import { ThemeProvider } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'OnlySNS',
-  description: 'A simple social network for sharing your thoughts',
+  description: '自分専用の学習SNS',
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="ja" data-theme="light">
       <body className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
         <ThemeProvider>
           {children}

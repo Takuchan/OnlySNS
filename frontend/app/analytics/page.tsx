@@ -38,9 +38,9 @@ export default function AnalyticsPage() {
   }, [fetchData]);
 
   const tabs: { value: Tab; label: string; icon: string }[] = [
-    { value: 'heatmap', label: 'Streak', icon: '🔥' },
-    { value: 'words', label: 'Words', icon: '📊' },
-    { value: 'calendar', label: 'Calendar', icon: '📅' },
+    { value: 'heatmap', label: '継続', icon: '🔥' },
+    { value: 'words', label: '単語', icon: '📊' },
+    { value: 'calendar', label: 'カレンダー', icon: '📅' },
   ];
 
   return (
@@ -52,9 +52,9 @@ export default function AnalyticsPage() {
             className="text-sm font-medium transition-colors"
             style={{ color: 'var(--text-secondary)' }}
           >
-            ← Back
+            ← 戻る
           </Link>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Analytics</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>分析</h1>
         </div>
         <ThemeSwitcher />
       </header>
@@ -79,14 +79,14 @@ export default function AnalyticsPage() {
 
       {loading ? (
         <div className="text-center py-16 text-sm" style={{ color: 'var(--text-muted)' }}>
-          Loading analytics…
+          分析データを読み込み中...
         </div>
       ) : (
         <div className="rounded-xl p-6 page-enter" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           {tab === 'heatmap' && (
             <div>
               <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-                📅 Daily Posting Streak
+                📅 投稿継続ヒートマップ
               </h2>
               <StreakHeatmap activity={activity} days={365} />
             </div>
@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
           {tab === 'words' && (
             <div>
               <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-                📊 Top Words in Your Posts
+                📊 よく使う単語
               </h2>
               <WordFrequency posts={posts} />
             </div>
@@ -102,7 +102,7 @@ export default function AnalyticsPage() {
           {tab === 'calendar' && (
             <div>
               <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
-                📅 Posting Calendar
+                📅 投稿カレンダー
               </h2>
               <CalendarView posts={posts} />
             </div>

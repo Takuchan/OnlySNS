@@ -38,9 +38,9 @@ export default function SettingsPage() {
             className="text-sm font-medium transition-colors"
             style={{ color: 'var(--text-secondary)' }}
           >
-            ← Back
+            ← 戻る
           </Link>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>設定</h1>
         </div>
         <ThemeSwitcher />
       </header>
@@ -48,12 +48,12 @@ export default function SettingsPage() {
       <div className="space-y-6">
         {/* Theme section */}
         <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>🎨 Appearance</h2>
+          <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>🎨 見た目</h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Theme</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>テーマ</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                Choose between Light, Dark, or Waga Homare (我が誉) mode
+                ライト・ダーク・わがほまれ から選べます
               </p>
             </div>
             <ThemeSwitcher />
@@ -62,11 +62,11 @@ export default function SettingsPage() {
 
         {/* Feed settings */}
         <div className="rounded-xl p-6" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>📰 Feed</h2>
+          <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>📰 フィード</h2>
           <div>
-            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Posts per page</p>
+            <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>1ページの投稿数</p>
             <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-              How many posts to load at once in the main feed (5–100)
+              メインフィードで一度に表示する件数 (5〜100)
             </p>
 
             {/* Preset buttons */}
@@ -105,7 +105,7 @@ export default function SettingsPage() {
                   border: '1px solid var(--border)',
                 }}
               />
-              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>posts per page</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>件 / ページ</span>
             </div>
           </div>
 
@@ -115,7 +115,7 @@ export default function SettingsPage() {
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
               style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
             >
-              {saved ? '✓ Saved!' : 'Save Settings'}
+              {saved ? '✓ 保存しました' : '設定を保存'}
             </button>
           </div>
         </div>

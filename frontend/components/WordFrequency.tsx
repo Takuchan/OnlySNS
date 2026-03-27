@@ -44,7 +44,7 @@ export default function WordFrequency({ posts }: WordFrequencyProps) {
   if (words.length === 0) {
     return (
       <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Post more to see your top words!
+        投稿が増えると、よく使う単語が表示されます。
       </div>
     );
   }

@@ -22,7 +22,7 @@ export default function ExportModal({ onClose }: ExportModalProps) {
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
       <div className="rounded-xl p-6 w-full max-w-md" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Export Posts</h2>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>投稿をエクスポート</h2>
           <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-muted)' }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
@@ -31,7 +31,7 @@ export default function ExportModal({ onClose }: ExportModalProps) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Format</label>
+            <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>形式</label>
             <div className="flex gap-3">
               {(['json', 'csv'] as const).map(f => (
                 <label key={f} className="flex items-center gap-2 cursor-pointer">
@@ -54,14 +54,14 @@ export default function ExportModal({ onClose }: ExportModalProps) {
                 checked={allTime}
                 onChange={e => setAllTime(e.target.checked)}
               />
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>All time</span>
+              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>全期間</span>
             </label>
           </div>
 
           {!allTime && (
             <div className="space-y-2">
               <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>From</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>開始日</label>
                 <input
                   type="date"
                   value={from}
@@ -71,7 +71,7 @@ export default function ExportModal({ onClose }: ExportModalProps) {
                 />
               </div>
               <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>To</label>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>終了日</label>
                 <input
                   type="date"
                   value={to}
@@ -90,14 +90,14 @@ export default function ExportModal({ onClose }: ExportModalProps) {
             className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
             style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
           >
-            Cancel
+            閉じる
           </button>
           <button
             onClick={handleDownload}
             className="flex-1 py-2 rounded-lg text-sm font-medium transition-colors"
             style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
           >
-            Download
+            ダウンロード
           </button>
         </div>
       </div>

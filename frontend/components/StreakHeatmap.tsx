@@ -95,7 +95,7 @@ export default function StreakHeatmap({ activity, days = 365 }: StreakHeatmapPro
     return labels;
   }, [cells]);
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
   return (
     <div className="w-full">
@@ -103,17 +103,17 @@ export default function StreakHeatmap({ activity, days = 365 }: StreakHeatmapPro
       <div className="flex items-center gap-6 mb-4 flex-wrap">
         <div className="text-center">
           <div className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>{currentStreak}</div>
-          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Day Streak 🔥</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>連続日数 🔥</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{totalDays}</div>
-          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Active Days</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>投稿した日</div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
             {activity.reduce((s, a) => s + a.count, 0)}
           </div>
-          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>Total Posts</div>
+          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>総投稿数</div>
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export default function StreakHeatmap({ activity, days = 365 }: StreakHeatmapPro
                         outline: cell.isToday ? '1px solid var(--accent)' : 'none',
                         outlineOffset: '1px',
                       }}
-                      title={`${cell.date}: ${cell.count} post${cell.count !== 1 ? 's' : ''}`}
+                      title={`${cell.date}: ${cell.count}件`}
                     />
                   ))}
                 </div>
@@ -172,7 +172,7 @@ export default function StreakHeatmap({ activity, days = 365 }: StreakHeatmapPro
 
       {/* Legend */}
       <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-        <span>Less</span>
+        <span>少</span>
         {[0, 1, 2, 4, 7].map(v => (
           <div
             key={v}
@@ -180,7 +180,7 @@ export default function StreakHeatmap({ activity, days = 365 }: StreakHeatmapPro
             style={{ backgroundColor: getIntensityColor(v) }}
           />
         ))}
-        <span>More</span>
+        <span>多</span>
       </div>
     </div>
   );

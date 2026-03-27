@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
-import { createPost, Post } from '@/lib/api';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
+import { createPost, fetchOGP, OGPPreview, Post } from '@/lib/api';
+import LinkPreviewCard from '@/components/LinkPreviewCard';
 
 interface PostFormProps {
   onPostCreated: (post: Post) => void;
 }
 
 function countChars(text: string): number {
-  // Remove URLs
   const stripped = text.replace(/https?:\/\/\S+/g, '');
   let count = 0;
   for (const char of stripped) {
@@ -33,6 +33,11 @@ function isDoubleWidth(cp: number): boolean {
   );
 }
 
+function firstURL(text: string): string | null {
+  const m = text.match(/https?:\/\/\S+/);
+  return m ? m[0] : null;
+}
+
 const MAX_CHARS = 560;
 const MAX_CODE_LINES = 20;
 
@@ -44,17 +49,52 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [preview, setPreview] = useState<OGPPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [detectedURL, setDetectedURL] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const charCount = countChars(content);
-  const codeLines = code.split('\n').length;
+  const codeLines = code === '' ? 0 : code.split('\n').length;
   const charWarning = charCount > MAX_CHARS * 0.9;
   const charError = charCount > MAX_CHARS;
-  const codeLinesWarning = codeLines > MAX_CODE_LINES;
+  const codeLinesError = codeLines > MAX_CODE_LINES;
+
+  useEffect(() => {
+    const url = firstURL(content);
+    if (!url) {
+      setDetectedURL('');
+      setPreview(null);
+      setPreviewError('');
+      setPreviewLoading(false);
+      return;
+    }
+    if (url === detectedURL) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setDetectedURL(url);
+      setPreviewLoading(true);
+      setPreviewError('');
+      try {
+        const data = await fetchOGP(url);
+        setPreview(data);
+      } catch {
+        setPreview(null);
+        setPreviewError('リンクのプレビューを取得できませんでした');
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [content, detectedURL]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+      setFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
     }
   };
 
@@ -65,15 +105,15 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) {
-      setError('Content is required');
+      setError('本文を入力してください');
       return;
     }
     if (charError) {
-      setError(`Content exceeds ${MAX_CHARS} character units`);
+      setError(`文字数が上限 (${MAX_CHARS}) を超えています`);
       return;
     }
-    if (codeLinesWarning) {
-      setError(`Code snippet exceeds ${MAX_CODE_LINES} lines`);
+    if (codeLinesError) {
+      setError(`コードは最大 ${MAX_CODE_LINES} 行までです`);
       return;
     }
 
@@ -96,40 +136,70 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
       setLanguage('');
       setFiles([]);
       setShowCode(false);
+      setPreview(null);
+      setPreviewError('');
+      setDetectedURL('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create post');
+      setError(err instanceof Error ? err.message : '投稿に失敗しました');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl p-4" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-[24px] p-5 border"
+      style={{
+        background: 'var(--card-gradient)',
+        borderColor: 'var(--border)',
+        boxShadow: 'var(--soft-shadow)',
+      }}
+    >
       <textarea
         value={content}
         onChange={e => setContent(e.target.value)}
-        placeholder="What's on your mind?"
-        rows={3}
+        placeholder="今日の勉強メモ、ゆるっと書こう！"
+        rows={4}
         className="w-full bg-transparent resize-none outline-none text-sm"
         style={{ color: 'var(--text-primary)', caretColor: 'var(--accent)' }}
       />
 
       <div className="flex items-center justify-between mt-1 mb-2">
-        <span className="text-xs" style={{ color: charError ? 'var(--danger)' : charWarning ? '#fbbf24' : 'var(--text-muted)' }}>
+        <span className="text-xs" style={{ color: charError ? 'var(--danger)' : charWarning ? 'var(--warning)' : 'var(--text-muted)' }}>
           {charCount} / {MAX_CHARS}
+        </span>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          URLは文字数にカウントしません
         </span>
       </div>
 
+      {previewLoading && (
+        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+          リンク情報を取得中...
+        </p>
+      )}
+      {preview && (
+        <div className="mb-2">
+          <LinkPreviewCard preview={preview} />
+        </div>
+      )}
+      {previewError && !previewLoading && (
+        <p className="text-xs mb-2" style={{ color: 'var(--danger)' }}>
+          {previewError}
+        </p>
+      )}
+
       {showCode && (
-        <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          <div className="flex items-center px-3 py-1 gap-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <div className="mt-2 rounded-2xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center px-3 py-2 gap-2" style={{ backgroundColor: 'var(--bg-secondary)' }}>
             <select
               value={language}
               onChange={e => setLanguage(e.target.value)}
               className="bg-transparent text-xs outline-none"
               style={{ color: 'var(--text-secondary)' }}
             >
-              <option value="">Language</option>
+              <option value="">言語を選択</option>
               <option value="javascript">JavaScript</option>
               <option value="typescript">TypeScript</option>
               <option value="python">Python</option>
@@ -139,16 +209,16 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
               <option value="cpp">C++</option>
               <option value="sql">SQL</option>
               <option value="bash">Bash</option>
-              <option value="other">Other</option>
+              <option value="other">その他</option>
             </select>
-            <span className="ml-auto text-xs" style={{ color: codeLinesWarning ? 'var(--danger)' : 'var(--text-muted)' }}>
-              {codeLines} / {MAX_CODE_LINES} lines
+            <span className="ml-auto text-xs" style={{ color: codeLinesError ? 'var(--danger)' : 'var(--text-muted)' }}>
+              {codeLines} / {MAX_CODE_LINES} 行
             </span>
           </div>
           <textarea
             value={code}
             onChange={e => setCode(e.target.value)}
-            placeholder="Paste your code here..."
+            placeholder="コードを貼り付け"
             rows={6}
             className="w-full font-mono text-xs p-3 resize-none outline-none"
             style={{ backgroundColor: 'var(--code-bg)', color: 'var(--code-text)' }}
@@ -159,23 +229,24 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
       {files.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {files.map((f, i) => (
-            <div key={i} className="relative group">
+            <div key={`${f.name}-${i}`} className="relative group">
               {f.type.startsWith('image') ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={URL.createObjectURL(f)}
                   alt={f.name}
-                  className="h-16 w-16 object-cover rounded-lg"
+                  className="h-16 w-16 object-cover rounded-xl"
                 />
               ) : (
-                <div className="h-16 w-16 rounded-lg flex items-center justify-center text-xs text-center p-1" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                <div className="h-16 w-16 rounded-xl flex items-center justify-center text-xs text-center p-1" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                   {f.name}
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => removeFile(i)}
-                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center"
+                className="absolute -top-1 -right-1 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                style={{ backgroundColor: 'var(--danger)' }}
               >
                 ×
               </button>
@@ -188,18 +259,16 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
         <p className="mt-2 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
       )}
 
-      <div className="flex items-center justify-between mt-3">
+      <div className="flex items-center justify-between mt-4">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 rounded-lg transition-colors text-sm"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-            title="Attach media"
+            className="px-3 py-2 rounded-full text-sm border"
+            style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)', backgroundColor: 'var(--bg-secondary)' }}
+            title="メディアを添付"
           >
-            📎
+            📎 画像/動画
           </button>
           <input
             ref={fileInputRef}
@@ -212,25 +281,24 @@ export default function PostForm({ onPostCreated }: PostFormProps) {
           <button
             type="button"
             onClick={() => setShowCode(!showCode)}
-            className="p-2 rounded-lg transition-colors text-sm"
+            className="px-3 py-2 rounded-full text-sm border"
             style={{
-              color: showCode ? 'var(--accent)' : 'var(--text-muted)',
-              backgroundColor: showCode ? 'color-mix(in srgb, var(--accent) 15%, transparent)' : 'transparent',
+              color: showCode ? 'var(--accent)' : 'var(--text-secondary)',
+              borderColor: 'var(--border)',
+              backgroundColor: showCode ? 'color-mix(in srgb, var(--accent) 18%, var(--bg-secondary))' : 'var(--bg-secondary)',
             }}
-            title="Add code snippet"
+            title="コードを追加"
           >
-            {'</>'}
+            {'</>'} コード
           </button>
         </div>
         <button
           type="submit"
           disabled={submitting || charError || !content.trim()}
-          className="px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
-          style={{ backgroundColor: 'var(--accent)' }}
-          onMouseEnter={e => { if (!submitting && !charError && content.trim()) (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--accent-hover)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--accent)'; }}
+          className="px-5 py-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold rounded-full"
+          style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)', boxShadow: 'var(--button-shadow)' }}
         >
-          {submitting ? 'Posting...' : 'Post'}
+          {submitting ? '投稿中...' : '投稿する'}
         </button>
       </div>
     </form>

@@ -15,6 +15,7 @@ const (
 type Post struct {
 	ID           string        `json:"id"`
 	Content      string        `json:"content"`
+	Tags         []string      `json:"tags"`
 	CharCount    int           `json:"char_count"`
 	CreatedAt    time.Time     `json:"created_at"`
 	UpdatedAt    time.Time     `json:"updated_at"`

@@ -48,6 +48,7 @@ func isDoubleWidthChar(r rune) bool {
 
 type CreatePostInput struct {
 	Content    string
+	Tags       []string
 	Code       string
 	Language   string
 	MediaItems []domain.Media
@@ -59,11 +60,12 @@ func (u *PostUsecase) CreatePost(ctx context.Context, input CreatePostInput) (*d
 	post := &domain.Post{
 		ID:           uuid.New().String(),
 		Content:      input.Content,
+		Tags:         normalizeTags(input.Tags),
 		CharCount:    charCount,
 		Likes:        0,
 		Shares:       0,
-		TargetLikes:  rand.Intn(9951) + 50,  // 50 to 10000
-		TargetShares: rand.Intn(4991) + 10,  // 10 to 5000
+		TargetLikes:  randomLikeTarget(),
+		TargetShares: randomShareTarget(),
 		Media:        []domain.Media{},
 		CodeSnippets: []domain.CodeSnippet{},
 	}
@@ -101,6 +103,10 @@ func (u *PostUsecase) DeletePost(ctx context.Context, id string) error {
 	return u.repo.Delete(ctx, id)
 }
 
+func (u *PostUsecase) GetPostByID(ctx context.Context, id string) (*domain.Post, error) {
+	return u.repo.GetByID(ctx, id)
+}
+
 func (u *PostUsecase) ListForExport(ctx context.Context, from, to *time.Time) ([]*domain.Post, error) {
 	return u.repo.ListForExport(ctx, from, to)
 }
@@ -109,10 +115,76 @@ func (u *PostUsecase) LikePost(ctx context.Context, id string) (int, error) {
 	return u.repo.LikePost(ctx, id)
 }
 
+func (u *PostUsecase) RepostPost(ctx context.Context, id string) (int, error) {
+	return u.repo.RepostPost(ctx, id)
+}
+
 func (u *PostUsecase) SearchPosts(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error) {
 	return u.repo.Search(ctx, keyword, from, to, page, limit)
 }
 
 func (u *PostUsecase) GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error) {
 	return u.repo.GetDailyActivity(ctx, days)
+}
+
+func randomLikeTarget() int {
+	// Casual personal-use range: mostly tens to low thousands, rarely around ten-thousands.
+	r := rand.Float64()
+	switch {
+	case r < 0.70:
+		return rand.Intn(220) + 30 // 30-249
+	case r < 0.92:
+		return rand.Intn(1900) + 250 // 250-2149
+	case r < 0.99:
+		return rand.Intn(6000) + 2200 // 2200-8199
+	default:
+		return rand.Intn(4000) + 8200 // 8200-12199
+	}
+}
+
+func randomShareTarget() int {
+	// Repost counts are generally much smaller than likes.
+	r := rand.Float64()
+	switch {
+	case r < 0.75:
+		return rand.Intn(60) + 5 // 5-64
+	case r < 0.94:
+		return rand.Intn(260) + 65 // 65-324
+	case r < 0.99:
+		return rand.Intn(650) + 325 // 325-974
+	default:
+		return rand.Intn(700) + 975 // 975-1674
+	}
+}
+
+func normalizeTags(tags []string) []string {
+	if len(tags) == 0 {
+		return []string{}
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			continue
+		}
+		if !strings.HasPrefix(trimmed, "#") {
+			trimmed = "#" + trimmed
+		}
+		if len([]rune(trimmed)) > 24 {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+		if len(out) >= 8 {
+			break
+		}
+	}
+	if out == nil {
+		return []string{}
+	}
+	return out
 }

@@ -16,6 +16,7 @@ type PostRepository interface {
 	ListForEngagement(ctx context.Context) ([]*domain.Post, error)
 	UpdateEngagement(ctx context.Context, id string, likes, shares int) error
 	LikePost(ctx context.Context, id string) (int, error)
+	RepostPost(ctx context.Context, id string) (int, error)
 	Search(ctx context.Context, keyword string, from, to *time.Time, page, limit int) ([]*domain.Post, int, error)
 	GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error)
 }

@@ -20,6 +20,7 @@ export interface CodeSnippet {
 export interface Post {
   id: string;
   content: string;
+  tags: string[];
   char_count: number;
   created_at: string;
   updated_at: string;
@@ -29,6 +30,20 @@ export interface Post {
   target_shares: number;
   media: Media[];
   code_snippets: CodeSnippet[];
+}
+
+export interface OGPPreview {
+  title: string;
+  description: string;
+  image: string;
+  url: string;
+}
+
+export interface Quiz {
+  question: string;
+  choices: string[];
+  answer_index: number;
+  explanation: string;
 }
 
 export interface PostsResponse {
@@ -75,6 +90,58 @@ export async function likePost(id: string): Promise<number> {
   if (!res.ok) throw new Error('Failed to like post');
   const data = await res.json();
   return data.likes as number;
+}
+
+export async function repostPost(id: string): Promise<number> {
+  const res = await fetch(`${API_BASE}/api/v1/posts/${id}/repost`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to repost');
+  const data = await res.json();
+  return data.reposts as number;
+}
+
+export async function fetchOGP(url: string): Promise<OGPPreview> {
+  const params = new URLSearchParams({ url });
+  const res = await fetch(`${API_BASE}/api/v1/ogp?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch preview');
+  }
+  return res.json();
+}
+
+export async function getLatestTsukkomi(): Promise<{ message: string; post_id?: string }> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/tsukkomi/latest`, { cache: 'no-store' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'つっこみの取得に失敗しました');
+  }
+  return res.json();
+}
+
+export async function simplifyPost(id: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/posts/${id}/simplify`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'やさしい説明の生成に失敗しました');
+  }
+  const data = await res.json();
+  return data.simplified as string;
+}
+
+export async function generateQuiz(id: string): Promise<Quiz> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/posts/${id}/quiz`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || '4択クイズの生成に失敗しました');
+  }
+  return res.json();
+}
+
+export async function getRelatedPosts(id: string, limit = 3): Promise<Post[]> {
+  const res = await fetch(`${API_BASE}/api/v1/ai/posts/${id}/related?limit=${limit}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch related posts');
+  const data = await res.json();
+  return (data.posts || []) as Post[];
 }
 
 export interface SearchParams {

@@ -39,7 +39,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
           type="text"
           value={q}
           onChange={e => setQ(e.target.value)}
-          placeholder="Search posts..."
+          placeholder="投稿を検索..."
           className="flex-1 bg-transparent outline-none text-sm"
           style={{ color: 'var(--text-primary)' }}
         />
@@ -53,7 +53,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
           }}
           title="Date filters"
         >
-          📅 Filter
+          📅 日付
         </button>
         {hasFilters && (
           <button
@@ -61,7 +61,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
             onClick={handleClear}
             className="text-xs px-2 py-1 rounded-md transition-colors"
             style={{ color: 'var(--text-muted)' }}
-            title="Clear search"
+            title="検索をクリア"
           >
             ✕
           </button>
@@ -72,7 +72,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
           className="text-xs px-3 py-1 rounded-md font-medium transition-colors disabled:opacity-50"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-text)' }}
         >
-          {loading ? '...' : 'Search'}
+          {loading ? '...' : '検索'}
         </button>
       </div>
 
@@ -82,7 +82,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
           style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
           <div className="flex-1 min-w-32">
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>From</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>開始日</label>
             <input
               type="date"
               value={from}
@@ -92,7 +92,7 @@ export default function SearchBar({ onSearch, loading }: SearchBarProps) {
             />
           </div>
           <div className="flex-1 min-w-32">
-            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>To</label>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>終了日</label>
             <input
               type="date"
               value={to}

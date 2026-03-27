@@ -16,6 +16,7 @@ import (
 type MotivatorWorker struct {
 	repo     repository.PostRepository
 	aiSvc    *ai.Service
+	rng      *rand.Rand
 	interval time.Duration
 }
 
@@ -23,6 +24,7 @@ func NewMotivatorWorker(repo repository.PostRepository, aiSvc *ai.Service) *Moti
 	return &MotivatorWorker{
 		repo:     repo,
 		aiSvc:    aiSvc,
+		rng:      rand.New(rand.NewSource(time.Now().UnixNano())),
 		interval: 6 * time.Hour,
 	}
 }
@@ -48,7 +50,7 @@ func (w *MotivatorWorker) run(ctx context.Context) {
 		return
 	}
 
-	post := posts[rand.Intn(len(posts))]
+	post := posts[w.rng.Intn(len(posts))]
 
 	prompt := fmt.Sprintf("アクション映画のヒーローのように、以下の学習投稿に対して日本語でモチベーションを上げる熱いコメントをください（2-3文、絵文字使用可）:\n\n%s", post.Content)
 

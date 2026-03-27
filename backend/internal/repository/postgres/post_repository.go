@@ -135,22 +135,17 @@ func (r *postRepository) Delete(ctx context.Context, id string) error {
 func (r *postRepository) ListForExport(ctx context.Context, from, to *time.Time) ([]*domain.Post, error) {
 	query := `SELECT id, content, char_count, created_at, updated_at, likes, shares, target_likes, target_shares FROM posts`
 	args := []interface{}{}
-	argIdx := 1
 
 	if from != nil && to != nil {
 		query += ` WHERE created_at >= $1 AND created_at <= $2`
 		args = append(args, from, to)
-		argIdx = 3
 	} else if from != nil {
 		query += ` WHERE created_at >= $1`
 		args = append(args, from)
-		argIdx = 2
 	} else if to != nil {
 		query += ` WHERE created_at <= $1`
 		args = append(args, to)
-		argIdx = 2
 	}
-	_ = argIdx
 	query += ` ORDER BY created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, args...)

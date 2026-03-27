@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(postHandler *PostHandler) *gin.Engine {
+func SetupRouter(postHandler *PostHandler, aiHandler *AIHandler, analyzeHandler *AnalyzeHandler) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(corsMiddleware())
@@ -17,9 +17,20 @@ func SetupRouter(postHandler *PostHandler) *gin.Engine {
 		api.GET("/posts", postHandler.ListPosts)
 		api.DELETE("/posts/:id", postHandler.DeletePost)
 		api.POST("/posts/:id/like", postHandler.LikePost)
+		api.DELETE("/posts/:id/like", postHandler.UnlikePost)
 		api.GET("/search", postHandler.SearchPosts)
 		api.GET("/activity", postHandler.GetActivity)
 		api.GET("/export", postHandler.ExportPosts)
+
+		api.GET("/ogp", FetchOGP)
+
+		api.POST("/ai/code-review", aiHandler.CodeReview)
+		api.POST("/ai/summarize", aiHandler.Summarize)
+		api.POST("/ai/extract-entities", aiHandler.ExtractEntities)
+		api.POST("/ai/next-step", aiHandler.NextStep)
+		api.POST("/ai/caption", aiHandler.Caption)
+
+		api.POST("/analyze/text", analyzeHandler.AnalyzeText)
 	}
 
 	return r
@@ -37,3 +48,4 @@ func corsMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+

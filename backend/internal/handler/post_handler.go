@@ -220,6 +220,20 @@ func (h *PostHandler) LikePost(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"likes": likes})
 }
 
+func (h *PostHandler) UnlikePost(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+	likes, err := h.postUsecase.UnlikePost(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"likes": likes})
+}
+
 func (h *PostHandler) SearchPosts(c *gin.Context) {
 	keyword := c.Query("q")
 	page := 1

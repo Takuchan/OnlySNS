@@ -86,6 +86,7 @@ func (r *postRepository) List(ctx context.Context, page, limit int) ([]*domain.P
 		}
 		p.Media = []domain.Media{}
 		p.CodeSnippets = []domain.CodeSnippet{}
+		p.Comments = []domain.Comment{}
 		posts = append(posts, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -97,6 +98,9 @@ func (r *postRepository) List(ctx context.Context, page, limit int) ([]*domain.P
 			return nil, 0, err
 		}
 		if err := r.loadCodeSnippets(ctx, p); err != nil {
+			return nil, 0, err
+		}
+		if err := r.loadComments(ctx, p); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -119,10 +123,14 @@ func (r *postRepository) GetByID(ctx context.Context, id string) (*domain.Post, 
 	}
 	p.Media = []domain.Media{}
 	p.CodeSnippets = []domain.CodeSnippet{}
+	p.Comments = []domain.Comment{}
 	if err := r.loadMedia(ctx, p); err != nil {
 		return nil, err
 	}
 	if err := r.loadCodeSnippets(ctx, p); err != nil {
+		return nil, err
+	}
+	if err := r.loadComments(ctx, p); err != nil {
 		return nil, err
 	}
 	return p, nil
@@ -262,6 +270,7 @@ func (r *postRepository) Search(ctx context.Context, keyword string, from, to *t
 		}
 		p.Media = []domain.Media{}
 		p.CodeSnippets = []domain.CodeSnippet{}
+		p.Comments = []domain.Comment{}
 		posts = append(posts, p)
 	}
 	if err := rows.Err(); err != nil {
@@ -273,6 +282,9 @@ func (r *postRepository) Search(ctx context.Context, keyword string, from, to *t
 			return nil, 0, err
 		}
 		if err := r.loadCodeSnippets(ctx, p); err != nil {
+			return nil, 0, err
+		}
+		if err := r.loadComments(ctx, p); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -345,4 +357,53 @@ func (r *postRepository) loadCodeSnippets(ctx context.Context, p *domain.Post) e
 		p.CodeSnippets = append(p.CodeSnippets, cs)
 	}
 	return rows.Err()
+}
+
+func (r *postRepository) UnlikePost(ctx context.Context, id string) (int, error) {
+	var likes int
+	err := r.db.QueryRowContext(ctx,
+		`UPDATE posts SET likes = GREATEST(likes - 1, 0), updated_at = NOW() WHERE id = $1 RETURNING likes`,
+		id,
+	).Scan(&likes)
+	return likes, err
+}
+
+func (r *postRepository) AddComment(ctx context.Context, comment *domain.Comment) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO comments (id, post_id, content, is_ai) VALUES ($1, $2, $3, $4)`,
+		comment.ID, comment.PostID, comment.Content, comment.IsAI,
+	)
+	return err
+}
+
+func (r *postRepository) GetCommentsByPostID(ctx context.Context, postID string) ([]domain.Comment, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, post_id, content, is_ai, created_at FROM comments WHERE post_id = $1 ORDER BY created_at ASC`,
+		postID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var comments []domain.Comment
+	for rows.Next() {
+		c := domain.Comment{}
+		if err := rows.Scan(&c.ID, &c.PostID, &c.Content, &c.IsAI, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		comments = append(comments, c)
+	}
+	if comments == nil {
+		comments = []domain.Comment{}
+	}
+	return comments, rows.Err()
+}
+
+func (r *postRepository) loadComments(ctx context.Context, p *domain.Post) error {
+	comments, err := r.GetCommentsByPostID(ctx, p.ID)
+	if err != nil {
+		return err
+	}
+	p.Comments = comments
+	return nil
 }

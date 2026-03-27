@@ -24,6 +24,7 @@ type Post struct {
 	TargetShares int           `json:"target_shares"`
 	Media        []Media       `json:"media"`
 	CodeSnippets []CodeSnippet `json:"code_snippets"`
+	Comments     []Comment     `json:"comments"`
 }
 
 type Media struct {
@@ -40,6 +41,15 @@ type CodeSnippet struct {
 	Code      string    `json:"code"`
 	Language  string    `json:"language"`
 	LineCount int       `json:"line_count"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Comment represents an AI-generated or user comment on a post.
+type Comment struct {
+	ID        string    `json:"id"`
+	PostID    string    `json:"post_id"`
+	Content   string    `json:"content"`
+	IsAI      bool      `json:"is_ai"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

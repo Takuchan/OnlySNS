@@ -116,3 +116,15 @@ func (u *PostUsecase) SearchPosts(ctx context.Context, keyword string, from, to 
 func (u *PostUsecase) GetDailyActivity(ctx context.Context, days int) ([]domain.DailyActivity, error) {
 	return u.repo.GetDailyActivity(ctx, days)
 }
+
+func (u *PostUsecase) UnlikePost(ctx context.Context, id string) (int, error) {
+	return u.repo.UnlikePost(ctx, id)
+}
+
+func (u *PostUsecase) AddComment(ctx context.Context, comment *domain.Comment) error {
+	return u.repo.AddComment(ctx, comment)
+}
+
+func (u *PostUsecase) GetComments(ctx context.Context, postID string) ([]domain.Comment, error) {
+	return u.repo.GetCommentsByPostID(ctx, postID)
+}

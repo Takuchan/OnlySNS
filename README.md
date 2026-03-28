@@ -1,4 +1,5 @@
 # OnlySNS
+<img width="2512" height="2037" alt="image" src="https://github.com/user-attachments/assets/e152842f-004f-4e0e-b343-87bd6b8577bc" />
 
 自分専用の学習SNSです。投稿・検索・分析に加え、ローカルLLM(Ollama)を使ったAI補助機能を利用できます。
 

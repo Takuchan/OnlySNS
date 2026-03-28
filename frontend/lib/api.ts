@@ -176,3 +176,54 @@ export function getExportURL(format: 'json' | 'csv', from?: string, to?: string)
   if (to) params.set('to', to);
   return `${API_BASE}/api/v1/export?${params.toString()}`;
 }
+
+// Character Growth & Customization Types
+export interface CharacterState {
+  id: string;
+  user_id: string;
+  current_stage: number; // 1-5
+  total_posts: number;
+  total_study_points: number;
+  base_type: string; // 'male', 'female', 'neutral', 'animal'
+  last_updated: string;
+  created_at: string;
+}
+
+export interface PostAnalysis {
+  id: string;
+  post_id: string;
+  category: string; // Programming, Language Learning, Fitness, Philosophy, Art, Science, Design, Mathematics, Other
+  mood: string; // serious, joyful, struggling, proud, curious, thoughtful, excited
+  keywords: string[];
+  analysis_data: string;
+  created_at: string;
+}
+
+export interface CharacterAssets {
+  face_id: number; // 1-20
+  accessory_id: number; // 0-20 (0 = no accessory)
+  mood: string;
+  category: string;
+  keywords: string[];
+}
+
+// Character API Functions
+export async function getCharacterState(userId?: string): Promise<{ character_state: CharacterState; stage_name: string }> {
+  const params = new URLSearchParams();
+  if (userId) params.set('user_id', userId);
+  const res = await fetch(`${API_BASE}/api/v1/character/state?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch character state');
+  return res.json();
+}
+
+export async function getPostAnalysis(postId: string): Promise<{ analysis: PostAnalysis }> {
+  const res = await fetch(`${API_BASE}/api/v1/posts/${postId}/analysis`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch post analysis');
+  return res.json();
+}
+
+export async function getCharacterAssets(postId: string): Promise<{ assets: CharacterAssets }> {
+  const res = await fetch(`${API_BASE}/api/v1/posts/${postId}/character-assets`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch character assets');
+  return res.json();
+}

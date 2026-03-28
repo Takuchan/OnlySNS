@@ -33,12 +33,34 @@ func (s *AIService) GenerateTags(ctx context.Context, content string) []string {
 	}
 	prompt := fmt.Sprintf(`あなたは学習SNS用のタグ生成アシスタントです。
 以下の日本語テキストから検索しやすいタグを3〜6個提案してください。
-- 必ずJSONのみで返す
-- 形式: {"tags":["タグ名","タグ名"]}
-- 各タグは日本語中心、先頭は#、最大24文字
-- 個人情報や差別表現は禁止
 
-テキスト:
+## JSON スキーマ（必ず守る）
+{
+  "tags": ["#タグ1", "#タグ2", ...]
+}
+
+## 制約
+- 必ずJSON形式のみで返す（説明文は一切不要）
+- 各タグは先頭に#、最大24文字
+- 日本語中心
+- 個人情報や差別表現は禁止
+- 重複タグは禁止
+
+## Few-Shot Examples
+
+### 例1:
+入力: "Goでマイクロサービスアーキテクチャを学んでます。RESTful APIの設計が難しい"
+出力: {"tags": ["#Go", "#マイクロサービス", "#REST"]}
+
+### 例2:
+入力: "フランス語の発音練習。アクサンテギュがまだ慣れない"
+出力: {"tags": ["#フランス語", "#発音", "#言語学習"]}
+
+### 例3:
+入力: "朝30分ジョギング。心拍数の測定方法を学んだ"
+出力: {"tags": ["#フィットネス", "#ジョギング", "#ヘルスケア"]}
+
+## テキスト:
 %s`, content)
 
 	raw, err := s.client.GenerateJSON(ctx, prompt)
@@ -58,14 +80,31 @@ func (s *AIService) Tsukkomi(ctx context.Context, content string) string {
 	if strings.TrimSpace(content) == "" {
 		return "今日の学習ログを投稿すると、ここにゆるいつっこみが出るで。"
 	}
-	prompt := fmt.Sprintf(`あなたは日本語で返す勉強仲間のAIです。
+	prompt := fmt.Sprintf(`あなたは日本語で返す勉強仲間のAIアシスタントです。
 以下の学習投稿に対して、短くフレンドリーで少しユーモアのある"つっこみ"を1〜2文で返してください。
+
+## 制約
 - 上から目線禁止
 - 攻撃的表現禁止
 - 必ずポジティブに励ます
 - 日本語のみ
+- 回答のみ、説明文は不要
 
-投稿:
+## Few-Shot Examples
+
+### 例1:
+投稿: "Rustの所有権システムを勉強中。型安全性の重要性が分かってきた"
+つっこみ: "Rustの深さ、掴み始めたな！その調子でメモリセーフティも攻略していこう。"
+
+### 例2:
+投稿: "朝5時起きで数学の問題演習。3時間かかったけど全部解けた"
+つっこみ: "3時間かけて全解！その粘り強さ、絶対に力になってるで。"
+
+### 例3:
+投稿: "デザイン理論が難しくて挫けそう。でも面白いから続ける"
+つっこみ: "難しさを感じながらも続ける心意気、めっちゃええな。あと少しで感覚が変わるかもしれん。"
+
+## 投稿:
 %s`, content)
 	res, err := s.client.Generate(ctx, prompt, 0.7)
 	if err != nil || strings.TrimSpace(res) == "" {
@@ -98,11 +137,116 @@ func (s *AIService) TsukkomiFromTrend(ctx context.Context, posts []*domain.Post)
 	if err != nil || strings.TrimSpace(res) == "" {
 		return "最近の積み上げ、めっちゃええ感じやん。次は5分だけ復習タイム入れたら、さらに仕上がるで。"
 	}
-	return trimToRunes(res, 100)
+	return trimToRunes(res, 500)
+}
+
+// AnalyzeContent analyzes a post's content to determine category and mood for character customization
+type ContentAnalysisResult struct {
+	Category string   `json:"category"`
+	Mood     string   `json:"mood"`
+	Keywords []string `json:"keywords"`
+}
+
+func (s *AIService) AnalyzeContent(ctx context.Context, content string) (ContentAnalysisResult, error) {
+	if strings.TrimSpace(content) == "" {
+		return ContentAnalysisResult{
+			Category: "Other",
+			Mood:     "thoughtful",
+			Keywords: []string{},
+		}, nil
+	}
+
+	prompt := fmt.Sprintf(`以下の学習投稿を分析して、カテゴリと感情トーンを判定してください。
+
+## JSON スキーマ（必ず従う）
+{
+  "category": "Programming",
+  "mood": "excited",
+  "keywords": ["キーワード1", "キーワード2"]
+}
+
+## カテゴリ（category）の選択肢
+Programming, Language Learning, Fitness, Philosophy, Art, Science, Design, Mathematics, Other
+
+## 感情トーン（mood）の選択肢
+serious, joyful, struggling, proud, curious, thoughtful, excited
+
+## 制約
+- JSON形式のみで返す（説明文は一切不要）
+- categoryは必ず上記から選ぶ
+- moodは必ず上記から選ぶ
+- keywordsは 2〜4個の日本語キーワード
+- 説明や余分な文字は不要
+
+## Few-Shot Examples
+
+### 例1:
+投稿: "Goでのエラーハンドリングパターンを深掘り。nil チェックの重要性を改めて実感"
+出力: {"category": "Programming", "mood": "proud", "keywords": ["Go", "エラーハンドリング", "ベストプラクティス"]}
+
+### 例2:
+投稿: "フランス語の文法が難しい。でも音声を何度も聞いてたら少しずつ解る様になった"
+出力: {"category": "Language Learning", "mood": "joyful", "keywords": ["フランス語", "文法", "リスニング"]}
+
+### 例3:
+投稿: "デザイン課題、色彩理論でずっと悩んでた。やっと配色が決まった"
+出力: {"category": "Design", "mood": "excited", "keywords": ["色彩理論", "配色", "デザイン思考"]}
+
+### 例4:
+投稿: "今日の走行距離は5km。タイムは伸びなかったけど、足の柔軟性が上がった気がする"
+出力: {"category": "Fitness", "mood": "curious", "keywords": ["ジョギング", "フィットネス", "トレーニング"]}
+
+## 投稿内容:
+%s`, content)
+
+	raw, err := s.client.GenerateJSON(ctx, prompt)
+	if err != nil {
+		// Fallback on error
+		return ContentAnalysisResult{
+			Category: "Other",
+			Mood:     "thoughtful",
+			Keywords: []string{},
+		}, nil
+	}
+
+	var result ContentAnalysisResult
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		return ContentAnalysisResult{
+			Category: "Other",
+			Mood:     "thoughtful",
+			Keywords: []string{},
+		}, nil
+	}
+
+	// Normalize category to valid value
+	validCategories := map[string]bool{
+		"Programming": true, "Language Learning": true, "Fitness": true,
+		"Philosophy": true, "Art": true, "Science": true,
+		"Design": true, "Mathematics": true, "Other": true,
+	}
+	if !validCategories[result.Category] {
+		result.Category = "Other"
+	}
+
+	// Normalize mood to valid value
+	validMoods := map[string]bool{
+		"serious": true, "joyful": true, "struggling": true, "proud": true,
+		"curious": true, "thoughtful": true, "excited": true,
+	}
+	if !validMoods[result.Mood] {
+		result.Mood = "thoughtful"
+	}
+
+	// Limit keywords
+	if len(result.Keywords) > 4 {
+		result.Keywords = result.Keywords[:4]
+	}
+
+	return result, nil
 }
 
 func (s *AIService) ExplainLikeFive(ctx context.Context, content string) (string, error) {
-	prompt := fmt.Sprintf(`この投稿に対する反応を200文字以内で人間らしく反応してください。寄り添ってください。`, content)
+	prompt := fmt.Sprintf("この投稿に対する反応を200文字以内で人間らしく反応してください。寄り添ってください。\n\n投稿:\n%s", content)
 
 	res, err := s.client.Generate(ctx, prompt, 0.4)
 	if err != nil || strings.TrimSpace(res) == "" {
@@ -120,17 +264,46 @@ func (s *AIService) ExplainLikeFive(ctx context.Context, content string) (string
 
 func (s *AIService) GenerateQuiz(ctx context.Context, content string) (Quiz, error) {
 	prompt := fmt.Sprintf(`次の学習内容から4択クイズを1問だけ作成してください。
-必ずJSONのみで返してください。
-形式:
-{"question":"...","choices":["A","B","C","D"],"answer_index":0,"explanation":"..."}
-制約:
-- 日本語のみ
-- answer_indexは0〜3
-- choicesは4つ
-- 選択肢は紛らわしいが公平に
-- explanationは正解理由を簡潔に
 
-内容:
+## JSON スキーマ（必ず従う）
+{
+  "question": "質問テキスト",
+  "choices": ["選択肢①", "選択肢②", "選択肢③", "選択肢④"],
+  "answer_index": 0,
+  "explanation": "正解と理由の説明"
+}
+
+## 制約
+- JSON形式のみで返す（説明文は一切不要）
+- 日本語のみ
+- answer_indexは 0, 1, 2, 3 のいずれか
+- choicesは必ず4個
+- 選択肢は紛らわしいが公平に（ひっかけ等）
+- explanationは正解理由を100文字以内で簡潔に
+
+## Few-Shot Examples
+
+### 例1:
+学習内容: "Pythonのリスト内包表記を使用すると、従来のfor文より高速に処理できる"
+出力:
+{
+  "question": "Python のリスト内包表記の主な利点は何か？",
+  "choices": ["メモリ使用量が常に少なくなる", "コードが読みやすく、処理が高速", "複数の言語で使える構文", "デバッグが簡単になる"],
+  "answer_index": 1,
+  "explanation": "リスト内包表記は C で最適化されており、from ループより高速。コード簡潔性も向上します。"
+}
+
+### 例2:
+学習内容: "デザインの4つの基本原則は、近接 (Proximity)、整列 (Alignment)、反復 (Repetition)、コントラスト (Contrast) である"
+出力:
+{
+  "question": "デザインの基本原則 PARC に含まれないものはどれ？",
+  "choices": ["Proximity (近接)", "Alignment (整列)", "Rhythm (リズム)", "Contrast (コントラスト)"],
+  "answer_index": 2,
+  "explanation": "PARC の4原則は Proximity, Alignment, Repetition, Contrast です。Rhythm はデザイン重要ですが別概念です。"
+}
+
+## 学習内容:
 %s`, content)
 
 	raw, err := s.client.GenerateJSON(ctx, prompt)

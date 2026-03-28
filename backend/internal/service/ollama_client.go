@@ -12,10 +12,10 @@ import (
 )
 
 type OllamaClient struct {
-	baseURL        string
+	baseURL         string
 	generationModel string
 	embeddingModel  string
-	httpClient     *http.Client
+	httpClient      *http.Client
 }
 
 func NewOllamaClient(baseURL, generationModel, embeddingModel string) *OllamaClient {
@@ -23,7 +23,7 @@ func NewOllamaClient(baseURL, generationModel, embeddingModel string) *OllamaCli
 		baseURL = "http://localhost:11434"
 	}
 	if generationModel == "" {
-		generationModel = "llama3"
+		generationModel = "llama3.2"
 	}
 	if embeddingModel == "" {
 		embeddingModel = generationModel

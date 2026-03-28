@@ -42,6 +42,17 @@ func main() {
 	if _, err := db.Exec(string(migration)); err != nil {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
+
+	// Run character growth system migration
+	migrationPhase4, err := os.ReadFile("db/migrations/002_character_growth_system.sql")
+	if err == nil {
+		if _, err := db.Exec(string(migrationPhase4)); err != nil {
+			log.Fatalf("failed to run character growth migrations: %v", err)
+		}
+	} else {
+		log.Println("character growth migration file not found, skipping")
+	}
+
 	log.Println("migrations applied")
 
 	// Ensure uploads directory exists
@@ -61,6 +72,12 @@ func main() {
 	aiService := service.NewAIService(ollamaClient)
 	postHandler := handler.NewPostHandler(postUsecase, ogpService, aiService)
 
+	// Initialize character system repositories and usecase
+	characterRepo := postgres.NewPostgresCharacterStateRepository(db)
+	analysisRepo := postgres.NewPostgresPostAnalysisRepository(db)
+	characterUsecase := usecase.NewCharacterUsecase(characterRepo, analysisRepo, postRepo, aiService)
+	characterHandler := handler.NewCharacterHandler(characterUsecase)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -76,7 +93,7 @@ func main() {
 		cancel()
 	}()
 
-	r := handler.SetupRouter(postHandler)
+	r := handler.SetupRouter(postHandler, characterHandler)
 	log.Println("starting server on :8080")
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("failed to start server: %v", err)

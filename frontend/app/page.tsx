@@ -7,6 +7,7 @@ import PostCard from '@/components/PostCard';
 import ExportModal from '@/components/ExportModal';
 import SearchBar from '@/components/SearchBar';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import Character from '@/components/Character';
 import Link from 'next/link';
 
 function getFeedLimit(): number {
@@ -204,6 +205,14 @@ export default function Home() {
         </main>
 
         <aside className="lg:sticky lg:top-4 h-fit">
+          {/* Character Growth Display */}
+          <div className="rounded-[20px] p-4 border mb-4" style={{ background: 'var(--card-gradient)', borderColor: 'var(--border)', boxShadow: 'var(--soft-shadow)' }}>
+            <h2 className="text-sm font-black mb-3" style={{ color: 'var(--text-primary)' }}>Your Learning Journey 🌱</h2>
+            <div className="flex justify-center">
+              <Character sizeClass="medium" />
+            </div>
+          </div>
+
           <div className="rounded-[20px] p-4 border" style={{ background: 'var(--card-gradient)', borderColor: 'var(--border)', boxShadow: 'var(--soft-shadow)' }}>
             <h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>AI学習相棒のつっこみ</h2>
             <p className="text-sm mt-2 leading-6" style={{ color: 'var(--text-secondary)' }}>{tsukkomi}</p>

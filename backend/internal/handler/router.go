@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(postHandler *PostHandler) *gin.Engine {
+func SetupRouter(postHandler *PostHandler, characterHandler *CharacterHandler) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(corsMiddleware())
@@ -13,6 +13,7 @@ func SetupRouter(postHandler *PostHandler) *gin.Engine {
 
 	api := r.Group("/api/v1")
 	{
+		// Post endpoints
 		api.POST("/posts", postHandler.CreatePost)
 		api.GET("/posts", postHandler.ListPosts)
 		api.DELETE("/posts/:id", postHandler.DeletePost)
@@ -26,6 +27,11 @@ func SetupRouter(postHandler *PostHandler) *gin.Engine {
 		api.GET("/search", postHandler.SearchPosts)
 		api.GET("/activity", postHandler.GetActivity)
 		api.GET("/export", postHandler.ExportPosts)
+
+		// Character endpoints
+		api.GET("/character/state", characterHandler.GetCharacterState)
+		api.GET("/posts/:id/analysis", characterHandler.GetPostAnalysis)
+		api.GET("/posts/:id/character-assets", characterHandler.GetCharacterAssets)
 	}
 
 	return r

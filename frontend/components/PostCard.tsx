@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Post, generateQuiz, getRelatedPosts, likePost, Quiz, repostPost, simplifyPost } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import Character from './Character';
 
 interface PostCardProps {
   post: Post;
